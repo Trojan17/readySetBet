@@ -9,7 +9,7 @@ from src.app import ReadySetBetApp
 def main():
     """Main entry point for the application."""
     root = tk.Tk()
-    app = ReadySetBetApp(root)
+    ReadySetBetApp(root)
     root.mainloop()
 
 if __name__ == "__main__":
