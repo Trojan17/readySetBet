@@ -87,5 +87,5 @@ ready_set_bet/
 
 ## License
 
-[Your chosen license]
+GPL-3.0 license
 """
