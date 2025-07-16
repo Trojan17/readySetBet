@@ -91,6 +91,15 @@ PROP_BETS = [
     {"id": 28, "description": "Horse 7 > Horse 5 & 9", "multiplier": 2, "penalty": 5}
 ]
 
+# Exotic Finish bets configuration
+EXOTIC_FINISHES = [
+    {"id": 1, "name": "BY A NOSE", "description": "The 2nd place horse loses by exactly 1 space", "multiplier": 5, "penalty": 3},
+    {"id": 2, "name": "BLOW OUT", "description": "The 2nd place horse loses by more than 5 spaces", "multiplier": 4, "penalty": 2},
+    {"id": 3, "name": "TIGHT RACE", "description": "All horses move 6 or more spaces", "multiplier": 6, "penalty": 2},
+    {"id": 4, "name": "LATE START", "description": "At least 2 horses move 3 or fewer spaces", "multiplier": 4, "penalty": 1},
+    {"id": 5, "name": "PHOTO FINISH", "description": "The 3rd place horse loses by 3 or fewer spaces", "multiplier": 5, "penalty": 3}
+]
+
 # UI Colors
 COLORS = {
     "show": {
@@ -117,6 +126,10 @@ COLORS = {
     },
     "prop": {
         "bg": "#7B1FA2",  # Purple
+        "fg": "white"
+    },
+    "exotic": {
+        "bg": "#E65100",  # Deep Orange
         "fg": "white"
     }
 }

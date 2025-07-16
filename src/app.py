@@ -8,7 +8,7 @@ from typing import Optional
 from .models import GameState, Bet
 from .game_logic import GameLogic
 from .ui_components import BettingBoard
-from .dialogs import StandardBetDialog, SpecialBetDialog, PropBetDialog, RaceResultsDialog, AddPlayerDialog
+from .dialogs import StandardBetDialog, SpecialBetDialog, PropBetDialog, ExoticFinishDialog, RaceResultsDialog, AddPlayerDialog
 from .constants import HORSES, MAX_RACES
 
 
@@ -24,8 +24,9 @@ class ReadySetBetApp:
         self.game_state = GameState()
         self.game_logic = GameLogic(self.game_state)
 
-        # Generate initial prop bets
+        # Generate initial prop bets and exotic finishes
         self.game_state.generate_prop_bets_for_race()
+        self.game_state.generate_exotic_finish_for_race()
 
         # UI components
         self.betting_board = None
@@ -93,10 +94,11 @@ class ReadySetBetApp:
         betting_frame = ttk.LabelFrame(parent, text="Betting Board", padding="5")
         betting_frame.grid(row=1, column=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(10, 0))
 
-        self.betting_board = BettingBoard(betting_frame, self.on_standard_bet, self.on_special_bet, self.on_prop_bet)
+        self.betting_board = BettingBoard(betting_frame, self.on_standard_bet, self.on_special_bet, self.on_prop_bet, self.on_exotic_bet)
 
-        # Update prop bets display
+        # Update prop bets and exotic finishes display
         self.betting_board.update_prop_bets(self.game_state.current_prop_bets)
+        self.betting_board.update_exotic_finishes(self.game_state.current_exotic_finishes)
 
         # Initially disable betting until race starts
         self.betting_board.set_betting_enabled(False)
@@ -248,6 +250,53 @@ class ReadySetBetApp:
                 self.status_var.set(
                     f"{result['player']} placed ${result['token_value']} token on prop bet: {prop_bet['description'][:30]}...")
 
+    def on_exotic_bet(self, exotic_finish: dict):
+        """Handle exotic finish bet placement."""
+        if not self.game_state.players:
+            messagebox.showerror("Error", "No players added!")
+            return
+
+        if not self.game_state.race_active:
+            messagebox.showerror("Error", "Race must be started before placing bets!")
+            return
+
+        # Check how many players have already bet on this exotic finish
+        exotic_spot_key = f"exotic_{exotic_finish['id']}"
+        current_bets_on_exotic = [bet for bet in self.game_state.current_bets.values()
+                                  if bet.is_exotic_bet() and bet.exotic_finish_id == exotic_finish['id']]
+
+        if len(current_bets_on_exotic) >= 3:
+            messagebox.showerror("Error", "This exotic finish already has 3 players betting on it!")
+            return
+
+        dialog = ExoticFinishDialog(self.root, self.game_state.players, exotic_finish)
+        result = dialog.show()
+
+        if result:
+            # Create unique spot key for this player
+            player_exotic_spot_key = f"exotic_{exotic_finish['id']}_{result['player']}"
+
+            bet = Bet(
+                player=result["player"],
+                horse="Exotic",
+                bet_type=exotic_finish["name"],
+                multiplier=exotic_finish["multiplier"],
+                penalty=exotic_finish["penalty"],
+                token_value=result["token_value"],
+                spot_key=player_exotic_spot_key,
+                exotic_finish_id=exotic_finish["id"]
+            )
+
+            if self.game_state.place_bet(bet):
+                # Update the exotic finish button appearance
+                all_players_on_exotic = [bet.player for bet in self.game_state.current_bets.values()
+                                       if bet.is_exotic_bet() and bet.exotic_finish_id == exotic_finish['id']]
+                self.betting_board.update_exotic_finish_appearance(exotic_finish["id"], all_players_on_exotic)
+
+                self.update_displays()
+                self.status_var.set(
+                    f"{result['player']} placed ${result['token_value']} token on exotic finish: {exotic_finish['name']}")
+
     def start_race(self):
         """Start a race."""
         if not self.game_state.players:
@@ -268,23 +317,27 @@ class ReadySetBetApp:
         self.game_state.end_race()
         self.betting_board.set_betting_enabled(False)
 
-        dialog = RaceResultsDialog(self.root, HORSES, self.game_state.current_prop_bets, self.game_state.current_bets)
+        dialog = RaceResultsDialog(self.root, HORSES, self.game_state.current_prop_bets,
+                                 self.game_state.current_exotic_finishes, self.game_state.current_bets)
         if dialog.result:
             winners, losers = self.game_logic.process_race_results(
                 dialog.result["win"],
                 dialog.result["place"],
                 dialog.result["show"],
-                dialog.result.get("prop_results", {})
+                dialog.result.get("prop_results", {}),
+                dialog.result.get("exotic_results", {})
             )
 
             self.log_race_results(dialog.result["win"], dialog.result["place"], dialog.result["show"],
-                                winners, losers, dialog.result.get("prop_results", {}))
+                                winners, losers, dialog.result.get("prop_results", {}),
+                                dialog.result.get("exotic_results", {}))
 
             # Clear bets and reset board
             self.game_state.current_bets.clear()
             self.game_state.locked_spots.clear()
             self.betting_board.reset_all_buttons()
             self.betting_board.reset_prop_buttons_to_purple(self.game_state.current_prop_bets)
+            self.betting_board.reset_exotic_finishes_to_orange(self.game_state.current_exotic_finishes)
 
             # Ensure betting is disabled after race ends
             self.betting_board.set_betting_enabled(False)
@@ -301,6 +354,7 @@ class ReadySetBetApp:
         self.game_state.next_race()
         self.betting_board.reset_all_buttons()
         self.betting_board.update_prop_bets(self.game_state.current_prop_bets)
+        self.betting_board.update_exotic_finishes(self.game_state.current_exotic_finishes)
         self.betting_board.set_betting_enabled(False)
         self.update_displays()
         self.update_race_display()
@@ -380,6 +434,17 @@ class ReadySetBetApp:
                 prop_bet = next((p for p in self.game_state.current_prop_bets if p["id"] == bet_to_remove.prop_bet_id), None)
                 if prop_bet:
                     self.betting_board.reset_prop_bet_appearance(bet_to_remove.prop_bet_id, prop_bet)
+            elif bet_to_remove.is_exotic_bet():
+                # Update exotic finish appearance (remove this player)
+                remaining_players = [bet.player for bet in self.game_state.current_bets.values()
+                                   if bet.is_exotic_bet() and bet.exotic_finish_id == bet_to_remove.exotic_finish_id]
+                if remaining_players:
+                    self.betting_board.update_exotic_finish_appearance(bet_to_remove.exotic_finish_id, remaining_players)
+                else:
+                    # Reset to original appearance if no players left
+                    exotic_finish = next((ef for ef in self.game_state.current_exotic_finishes if ef["id"] == bet_to_remove.exotic_finish_id), None)
+                    if exotic_finish:
+                        self.betting_board.reset_exotic_finish_appearance(bet_to_remove.exotic_finish_id, exotic_finish)
             elif bet_to_remove.is_special_bet():
                 self.betting_board.reset_special_bet_appearance(bet_to_remove.bet_type)
             elif bet_to_remove.row is not None:
@@ -395,6 +460,7 @@ class ReadySetBetApp:
         self.game_state.clear_all_bets()
         self.betting_board.reset_all_buttons()
         self.betting_board.reset_prop_buttons_to_purple(self.game_state.current_prop_bets)
+        self.betting_board.reset_exotic_finishes_to_orange(self.game_state.current_exotic_finishes)
         # Keep betting enabled if race is active
         self.betting_board.set_betting_enabled(self.game_state.race_active)
         self.update_displays()
@@ -451,7 +517,7 @@ class ReadySetBetApp:
         self.results_text.insert(tk.END, f"[{timestamp}] {message}\n")
         self.results_text.see(tk.END)
 
-    def log_race_results(self, win_horses, place_horses, show_horses, winners, losers, prop_results):
+    def log_race_results(self, win_horses, place_horses, show_horses, winners, losers, prop_results, exotic_results):
         """Log race results and payouts."""
         self.log_message(f"Race {self.game_state.current_race} Results:")
         self.log_message(f"WIN: Horses {', '.join(map(str, win_horses))}")
@@ -466,6 +532,15 @@ class ReadySetBetApp:
                 if prop_bet:
                     result_text = "WON" if won else "LOST"
                     self.log_message(f"  {prop_bet['description']}: {result_text}")
+
+        # Log exotic finish results
+        if exotic_results:
+            self.log_message("Exotic Finish Results:")
+            for exotic_id, won in exotic_results.items():
+                exotic_finish = next((ef for ef in self.game_state.current_exotic_finishes if ef["id"] == exotic_id), None)
+                if exotic_finish:
+                    result_text = "WON" if won else "LOST"
+                    self.log_message(f"  {exotic_finish['name']}: {result_text}")
 
         if winners:
             self.log_message("Winners:")

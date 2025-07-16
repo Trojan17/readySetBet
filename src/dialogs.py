@@ -31,7 +31,6 @@ class BetDialog:
         player_combo.pack(pady=5)
         return player_var
 
-
     def create_token_selection(self, player_var: tk.StringVar) -> tk.StringVar:
         """Create token selection interface."""
         token_frame = ttk.LabelFrame(self.dialog, text="Select Token Value", padding="10")
@@ -62,7 +61,6 @@ class BetDialog:
         player_var.trace("w", lambda *args: update_token_display())
 
         return token_var
-
 
     def show(self) -> Optional[Dict]:
         """Show the dialog and return the result."""
@@ -276,13 +274,82 @@ class PropBetDialog(BetDialog):
         ttk.Button(self.dialog, text="Place Prop Bet", command=place_prop_action).pack(pady=10)
 
 
+class ExoticFinishDialog(BetDialog):
+    """Dialog for placing exotic finish bets."""
+
+    def __init__(self, parent, players: Dict, exotic_finish: Dict):
+        self.exotic_finish = exotic_finish
+        super().__init__(parent, players, "Place Exotic Finish Bet")
+        self.setup_content()
+
+    def setup_content(self):
+        """Set up the dialog content."""
+        # Bet information
+        ttk.Label(self.dialog, text="Exotic Finish Bet", font=("Arial", 14, "bold")).pack(pady=5)
+        ttk.Label(self.dialog, text=self.exotic_finish["name"],
+                  font=("Arial", 12, "bold"), foreground="darkorange").pack(pady=2)
+        ttk.Label(self.dialog, text=self.exotic_finish["description"],
+                  font=("Arial", 10), wraplength=300).pack(pady=5)
+
+        ttk.Label(self.dialog,
+                  text=f"Win: {self.exotic_finish['multiplier']}x multiplier | Lose: -${self.exotic_finish['penalty']} penalty",
+                  font=("Arial", 10)).pack(pady=2)
+
+        # Player and token selection
+        player_var = self.create_player_selection()
+        token_var = self.create_token_selection(player_var)
+
+        # Calculation display
+        calculation_label = ttk.Label(self.dialog, text="", font=("Arial", 11, "bold"))
+        calculation_label.pack(pady=10)
+
+        def update_calculation(*args):
+            if token_var.get():
+                token_value = int(token_var.get())
+                potential_win = token_value * self.exotic_finish["multiplier"]
+                calculation_label.configure(
+                    text=f"If WIN: +${potential_win} | If LOSE: -${self.exotic_finish['penalty']}",
+                    foreground="darkorange")
+            else:
+                calculation_label.configure(text="")
+
+        token_var.trace("w", update_calculation)
+
+        # Action button
+        def place_exotic_action():
+            player = player_var.get()
+            token_value = token_var.get()
+
+            if not player:
+                messagebox.showerror("Error", "Please select a player!")
+                return
+
+            if not token_value:
+                messagebox.showerror("Error", "Please select a token!")
+                return
+
+            if self.players[player].get_available_tokens(token_value) <= 0:
+                messagebox.showerror("Error", "No tokens of this value available!")
+                return
+
+            self.result = {
+                "player": player,
+                "token_value": int(token_value),
+                "exotic_finish_id": self.exotic_finish["id"]
+            }
+            self.dialog.destroy()
+
+        ttk.Button(self.dialog, text="Place Exotic Finish Bet", command=place_exotic_action).pack(pady=10)
+
+
 class RaceResultsDialog:
     """Dialog for entering race results."""
 
-    def __init__(self, parent, horses: List[str], prop_bets: List[Dict], current_bets: Dict):
+    def __init__(self, parent, horses: List[str], prop_bets: List[Dict], exotic_finishes: List[Dict], current_bets: Dict):
         self.parent = parent
         self.horses = horses
         self.prop_bets = prop_bets
+        self.exotic_finishes = exotic_finishes
         self.current_bets = current_bets
         self.result = None
         self.setup_dialog()
@@ -330,14 +397,13 @@ class RaceResultsDialog:
         ttk.Label(scrollable_frame, text=f"Use horse names: {', '.join(self.horses)}", font=("Arial", 8)).pack()
 
         # Prop bet results section
-        # Only show prop bets that have actual bets placed on them
         prop_bets_with_bets = self._get_prop_bets_with_bets()
 
+        prop_vars = {}
         if prop_bets_with_bets:
             ttk.Separator(scrollable_frame, orient='horizontal').pack(fill='x', pady=20)
             ttk.Label(scrollable_frame, text="Prop Bet Results:", font=("Arial", 12, "bold")).pack(pady=10)
 
-            prop_vars = {}
             for prop_bet in prop_bets_with_bets:
                 frame = ttk.Frame(scrollable_frame)
                 frame.pack(pady=5, padx=20, fill='x')
@@ -353,6 +419,30 @@ class RaceResultsDialog:
                 ttk.Radiobutton(result_frame, text="Lost", variable=var, value="lost").pack(side=tk.LEFT, padx=5)
 
                 prop_vars[prop_bet["id"]] = var
+
+        # Exotic finish results section
+        exotic_finishes_with_bets = self._get_exotic_finishes_with_bets()
+
+        exotic_vars = {}
+        if exotic_finishes_with_bets:
+            ttk.Separator(scrollable_frame, orient='horizontal').pack(fill='x', pady=20)
+            ttk.Label(scrollable_frame, text="Exotic Finish Results:", font=("Arial", 12, "bold")).pack(pady=10)
+
+            for exotic_finish in exotic_finishes_with_bets:
+                frame = ttk.Frame(scrollable_frame)
+                frame.pack(pady=5, padx=20, fill='x')
+
+                ttk.Label(frame, text=f"{exotic_finish['name']}: {exotic_finish['description']}",
+                         wraplength=350, font=("Arial", 9)).pack(anchor='w')
+
+                var = tk.StringVar(value="")
+                result_frame = ttk.Frame(frame)
+                result_frame.pack(anchor='w', pady=2)
+
+                ttk.Radiobutton(result_frame, text="Won", variable=var, value="won").pack(side=tk.LEFT, padx=5)
+                ttk.Radiobutton(result_frame, text="Lost", variable=var, value="lost").pack(side=tk.LEFT, padx=5)
+
+                exotic_vars[exotic_finish["id"]] = var
 
         def process_results():
             try:
@@ -379,7 +469,6 @@ class RaceResultsDialog:
 
                 # Parse prop bet results
                 prop_results = {}
-                prop_bets_with_bets = self._get_prop_bets_with_bets()
                 if prop_bets_with_bets:
                     for prop_bet in prop_bets_with_bets:
                         prop_id = prop_bet["id"]
@@ -392,11 +481,26 @@ class RaceResultsDialog:
                             messagebox.showerror("Error", f"Please select a result for prop bet: {prop_bet['description'][:30]}...")
                             return
 
+                # Parse exotic finish results
+                exotic_results = {}
+                if exotic_finishes_with_bets:
+                    for exotic_finish in exotic_finishes_with_bets:
+                        exotic_id = exotic_finish["id"]
+                        result = exotic_vars[exotic_id].get()
+                        if result == "won":
+                            exotic_results[exotic_id] = True
+                        elif result == "lost":
+                            exotic_results[exotic_id] = False
+                        else:
+                            messagebox.showerror("Error", f"Please select a result for exotic finish: {exotic_finish['name']}")
+                            return
+
                 self.result = {
                     "win": win_horses,
                     "place": place_horses,
                     "show": show_horses,
-                    "prop_results": prop_results
+                    "prop_results": prop_results,
+                    "exotic_results": exotic_results
                 }
                 dialog.destroy()
 
@@ -427,6 +531,23 @@ class RaceResultsDialog:
                 prop_bets_with_bets.append(prop_bet)
 
         return prop_bets_with_bets
+
+    def _get_exotic_finishes_with_bets(self) -> List[Dict]:
+        """Get only the exotic finishes that have actual bets placed on them."""
+        exotic_finishes_with_bets = []
+
+        # Find which exotic finishes have actual bets
+        exotic_finish_ids_with_bets = set()
+        for bet in self.current_bets.values():
+            if bet.is_exotic_bet():
+                exotic_finish_ids_with_bets.add(bet.exotic_finish_id)
+
+        # Return only exotic finishes that have bets placed
+        for exotic_finish in self.exotic_finishes:
+            if exotic_finish["id"] in exotic_finish_ids_with_bets:
+                exotic_finishes_with_bets.append(exotic_finish)
+
+        return exotic_finishes_with_bets
 
 
 class AddPlayerDialog:

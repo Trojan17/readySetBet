@@ -13,9 +13,9 @@ class GameLogic:
         self.game_state = game_state
 
     def process_race_results(self, win_horses: List[str], place_horses: List[str], show_horses: List[str],
-                           prop_results: Dict[int, bool]) -> Tuple[List[str], List[str]]:
+                           prop_results: Dict[int, bool], exotic_results: Dict[int, bool]) -> Tuple[List[str], List[str]]:
         """Process race results and calculate payouts."""
-        self.game_state.race_results = RaceResults(win_horses, place_horses, show_horses, prop_results)
+        self.game_state.race_results = RaceResults(win_horses, place_horses, show_horses, prop_results, exotic_results)
 
         winners = []
         losers = []
@@ -26,6 +26,9 @@ class GameLogic:
             if bet.is_prop_bet():
                 # Handle prop bet
                 won = self._is_winning_prop_bet(bet, prop_results)
+            elif bet.is_exotic_bet():
+                # Handle exotic finish bet
+                won = self._is_winning_exotic_bet(bet, exotic_results)
             else:
                 # Handle standard and special bets
                 won = self._is_winning_bet(bet, win_horses, place_horses, show_horses)
@@ -53,12 +56,18 @@ class GameLogic:
             if prop_bet:
                 return f"Prop: {prop_bet['description']} with ${bet.token_value} token"
             return f"Prop bet #{bet.prop_bet_id} with ${bet.token_value} token"
+        elif bet.is_exotic_bet():
+            return f"Exotic: {bet.bet_type} with ${bet.token_value} token"
         else:
             return f"{bet.bet_type} with ${bet.token_value} token"
 
     def _is_winning_prop_bet(self, bet: Bet, prop_results: Dict[int, bool]) -> bool:
         """Check if a prop bet is a winning bet based on manual results."""
         return prop_results.get(bet.prop_bet_id, False)
+
+    def _is_winning_exotic_bet(self, bet: Bet, exotic_results: Dict[int, bool]) -> bool:
+        """Check if an exotic finish bet is a winning bet based on manual results."""
+        return exotic_results.get(bet.exotic_finish_id, False)
 
     def _is_winning_bet(self, bet: Bet, win_horses: List[str], place_horses: List[str], show_horses: List[str]) -> bool:
         """Check if a bet is a winning bet."""

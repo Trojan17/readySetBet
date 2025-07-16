@@ -2,8 +2,9 @@
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-from .constants import PLAYER_TOKENS, STARTING_MONEY, PROP_BETS
+from .constants import PLAYER_TOKENS, STARTING_MONEY, PROP_BETS, EXOTIC_FINISHES
 import random
+
 
 @dataclass
 class Player:
@@ -42,6 +43,7 @@ class Player:
         """Subtract money from the player, minimum 0."""
         self.money = max(0, self.money - amount)
 
+
 @dataclass
 class Bet:
     """Represents a bet placed by a player."""
@@ -55,6 +57,7 @@ class Bet:
     row: Optional[int] = None
     col: Optional[int] = None
     prop_bet_id: Optional[int] = None
+    exotic_finish_id: Optional[int] = None
 
     @property
     def potential_payout(self) -> int:
@@ -74,6 +77,11 @@ class Bet:
         """Check if this is a prop bet."""
         return self.prop_bet_id is not None
 
+    def is_exotic_bet(self) -> bool:
+        """Check if this is an exotic finish bet."""
+        return self.exotic_finish_id is not None
+
+
 @dataclass
 class RaceResults:
     """Represents the results of a race."""
@@ -81,6 +89,7 @@ class RaceResults:
     place_horses: List[str]
     show_horses: List[str]
     prop_bet_results: Dict[int, bool] = field(default_factory=dict)
+    exotic_finish_results: Dict[int, bool] = field(default_factory=dict)
 
     def is_winner(self, horse: str, bet_type: str) -> bool:
         """Check if a horse won for a specific bet type."""
@@ -91,6 +100,7 @@ class RaceResults:
         elif bet_type == "show":
             return horse in self.show_horses
         return False
+
 
 @dataclass
 class GameState:
@@ -105,6 +115,8 @@ class GameState:
     game_log: List[str] = field(default_factory=list)
     used_prop_bets: List[int] = field(default_factory=list)
     current_prop_bets: List[Dict] = field(default_factory=list)
+    used_exotic_finishes: List[int] = field(default_factory=list)
+    current_exotic_finishes: List[Dict] = field(default_factory=list)
 
     def add_player(self, name: str) -> bool:
         """Add a new player. Returns True if successful."""
@@ -175,6 +187,19 @@ class GameState:
             if prop["id"] not in self.used_prop_bets:
                 self.used_prop_bets.append(prop["id"])
 
+    def generate_exotic_finish_for_race(self):
+        """Generate 1 random exotic finish for the current race, excluding used ones."""
+        if self.current_race >= self.max_races:
+            # No exotic finishes added on the last race
+            return
+
+        available_exotics = [exotic for exotic in EXOTIC_FINISHES if exotic["id"] not in self.used_exotic_finishes]
+
+        if available_exotics:
+            selected_exotic = random.choice(available_exotics)
+            self.current_exotic_finishes.append(selected_exotic)
+            self.used_exotic_finishes.append(selected_exotic["id"])
+
     def next_race(self):
         """Advance to the next race."""
         self.current_race += 1
@@ -189,6 +214,10 @@ class GameState:
 
         # Generate new prop bets for the next race
         self.generate_prop_bets_for_race()
+
+        # Generate new exotic finish for the next race (except last race)
+        if self.current_race < self.max_races:
+            self.generate_exotic_finish_for_race()
 
     def start_race(self):
         """Start the current race - enable betting."""
@@ -209,6 +238,11 @@ class GameState:
         self.game_log.clear()
         self.used_prop_bets.clear()
         self.current_prop_bets.clear()
+        self.used_exotic_finishes.clear()
+        self.current_exotic_finishes.clear()
 
         # Generate prop bets for race 1
         self.generate_prop_bets_for_race()
+
+        # Generate first exotic finish for race 1
+        self.generate_exotic_finish_for_race()

@@ -9,14 +9,16 @@ from .constants import COLORS, SPECIAL_BETS, HORSES, HORSE_COLORS, BETTING_GRID
 class BettingBoard:
     """Handles the betting board UI component."""
 
-    def __init__(self, parent, on_standard_bet: Callable, on_special_bet: Callable, on_prop_bet: Callable):
+    def __init__(self, parent, on_standard_bet: Callable, on_special_bet: Callable, on_prop_bet: Callable, on_exotic_bet: Callable):
         self.parent = parent
         self.on_standard_bet = on_standard_bet
         self.on_special_bet = on_special_bet
         self.on_prop_bet = on_prop_bet
+        self.on_exotic_bet = on_exotic_bet
         self.bet_buttons = {}
         self.prop_bet_buttons = {}
         self.special_bet_buttons = {}
+        self.exotic_finish_buttons = {}
         self.setup_board()
 
     def setup_board(self):
@@ -30,6 +32,9 @@ class BettingBoard:
 
         # Special bets
         self._setup_special_bets(board_frame)
+
+        # Exotic finishes
+        self._setup_exotic_finishes(board_frame)
 
         # Main betting grid
         self._setup_main_grid(board_frame)
@@ -91,10 +96,41 @@ class BettingBoard:
             special_frame.columnconfigure(i, weight=1)
             self.special_bet_buttons[name] = btn
 
+    def _setup_exotic_finishes(self, parent):
+        """Set up the exotic finishes section."""
+        self.exotic_frame = ttk.LabelFrame(parent, text="Exotic Finishes", padding="5")
+        self.exotic_frame.grid(row=2, column=0, columnspan=3, pady=(0, 10), sticky="ew")
+
+        # Will be populated by update_exotic_finishes method
+
+    def update_exotic_finishes(self, exotic_finishes: List[Dict]):
+        """Update the exotic finishes display."""
+        # Clear existing exotic finish buttons
+        for widget in self.exotic_frame.winfo_children():
+            widget.destroy()
+        self.exotic_finish_buttons.clear()
+
+        if not exotic_finishes:
+            ttk.Label(self.exotic_frame, text="No exotic finishes available").pack(pady=10)
+            return
+
+        # Create exotic finish buttons
+        for i, exotic_finish in enumerate(exotic_finishes):
+            btn_text = f"{exotic_finish['name']}\n{exotic_finish['description']}\n{exotic_finish['multiplier']}x (-${exotic_finish['penalty']})\nUp to 3 players"
+
+            btn = tk.Button(self.exotic_frame, text=btn_text, font=("Arial", 8, "bold"),
+                            bg=COLORS["exotic"]["bg"], fg=COLORS["exotic"]["fg"],
+                            activebackground=COLORS["exotic"]["bg"], activeforeground=COLORS["exotic"]["fg"],
+                            relief="raised", bd=2, wraplength=180, height=5,
+                            command=lambda ef=exotic_finish: self.on_exotic_bet(ef))
+            btn.grid(row=0, column=i, padx=2, sticky="ew")
+            self.exotic_frame.columnconfigure(i, weight=1)
+            self.exotic_finish_buttons[exotic_finish["id"]] = btn
+
     def _setup_main_grid(self, parent):
         """Set up the main betting grid."""
         main_frame = ttk.Frame(parent)
-        main_frame.grid(row=2, column=0, sticky="nsew")
+        main_frame.grid(row=3, column=0, sticky="nsew")
 
         # Headers
         self._setup_headers(main_frame)
@@ -161,7 +197,7 @@ class BettingBoard:
     def _setup_current_bets(self, parent):
         """Set up the current bets display."""
         bets_frame = ttk.LabelFrame(parent, text="Current Bets", padding="5")
-        bets_frame.grid(row=3, column=0, pady=(10, 0), sticky="ew")
+        bets_frame.grid(row=4, column=0, pady=(10, 0), sticky="ew")
 
         # Treeview for bets
         self.bets_tree = ttk.Treeview(bets_frame,
@@ -254,6 +290,34 @@ class BettingBoard:
                 state="disabled"
             )
 
+    def update_exotic_finish_appearance(self, exotic_finish_id: int, players: List[str]):
+        """Update exotic finish button appearance to show players who bet on it."""
+        if exotic_finish_id in self.exotic_finish_buttons:
+            button = self.exotic_finish_buttons[exotic_finish_id]
+            current_text = button.cget("text")
+            lines = current_text.split('\n')
+
+            # Keep the first 4 lines (name, description, multiplier, "Up to 3 players")
+            if len(lines) >= 4:
+                player_text = ", ".join([p[:6] for p in players])
+                new_text = f"{lines[0]}\n{lines[1]}\n{lines[2]}\n{player_text}"
+            else:
+                player_text = ", ".join([p[:6] for p in players])
+                new_text = f"{current_text}\n{player_text}"
+
+            # Change color if 3 players have bet (fully locked)
+            if len(players) >= 3:
+                button.configure(
+                    text=new_text,
+                    bg=COLORS["locked"]["bg"],
+                    fg=COLORS["locked"]["fg"],
+                    activebackground=COLORS["locked"]["bg"],
+                    activeforeground=COLORS["locked"]["fg"],
+                    state="disabled"
+                )
+            else:
+                button.configure(text=new_text)
+
     def reset_button_appearance(self, horse: str, bet_type: str, row: int, col: int):
         """Reset button to original appearance."""
         if bet_type in self.bet_buttons[horse]:
@@ -316,6 +380,21 @@ class BettingBoard:
                 state="normal"
             )
 
+    def reset_exotic_finish_appearance(self, exotic_finish_id: int, exotic_finish: Dict):
+        """Reset exotic finish button to original appearance."""
+        if exotic_finish_id in self.exotic_finish_buttons:
+            button = self.exotic_finish_buttons[exotic_finish_id]
+            btn_text = f"{exotic_finish['name']}\n{exotic_finish['description']}\n{exotic_finish['multiplier']}x (-${exotic_finish['penalty']})\nUp to 3 players"
+
+            button.configure(
+                text=btn_text,
+                bg=COLORS["exotic"]["bg"],
+                fg=COLORS["exotic"]["fg"],
+                activebackground=COLORS["exotic"]["bg"],
+                activeforeground=COLORS["exotic"]["fg"],
+                state="normal"
+            )
+
     def set_betting_enabled(self, enabled: bool):
         """Enable or disable all betting buttons."""
         # Standard betting buttons
@@ -348,6 +427,15 @@ class BettingBoard:
             else:
                 button.configure(state="disabled")
 
+        # Exotic finish buttons
+        for button in self.exotic_finish_buttons.values():
+            if enabled:
+                # Only enable if not already fully locked (3 players)
+                if button.cget("bg") != COLORS["locked"]["bg"]:
+                    button.configure(state="normal")
+            else:
+                button.configure(state="disabled")
+
     def reset_all_buttons(self):
         """Reset all buttons to original appearance."""
         # Reset standard betting buttons
@@ -370,6 +458,12 @@ class BettingBoard:
             if prop_bet["id"] in self.prop_bet_buttons:
                 self.reset_prop_bet_appearance(prop_bet["id"], prop_bet)
 
+    def reset_exotic_finishes_to_orange(self, exotic_finishes: List[Dict]):
+        """Reset exotic finish buttons to their original orange appearance with full data."""
+        for exotic_finish in exotic_finishes:
+            if exotic_finish["id"] in self.exotic_finish_buttons:
+                self.reset_exotic_finish_appearance(exotic_finish["id"], exotic_finish)
+
     def update_bets_display(self, bets: Dict):
         """Update the bets display."""
         # Clear existing items
@@ -384,6 +478,9 @@ class BettingBoard:
             if bet.is_prop_bet():
                 horse_display = "Prop"
                 type_display = f"Prop #{bet.prop_bet_id}"
+            elif bet.is_exotic_bet():
+                horse_display = "Exotic"
+                type_display = f"Exotic #{bet.exotic_finish_id}"
             else:
                 horse_display = bet.horse if bet.horse != "Special" else "Special"
                 type_display = bet.bet_type
