@@ -498,11 +498,11 @@ class ReadySetBetApp:
             for value in ["5", "3", "2", "1"]:
                 available = player.get_available_tokens(value)
                 total = player.tokens[value]
-                tokens_available.append(f"{available}/{total}x${value}")
+                tokens_available.append(f"{available}/{total} {value}")
 
             tokens_str = " | ".join(tokens_available)
             self.player_listbox.insert(tk.END,
-                                       f"{player.name}: ${player.money} | Tokens: {tokens_str} | VIP: {vip_count}")
+                                       f"{player.name}: ${player.money} | Tokens: {tokens_str}")
 
     def update_race_display(self):
         """Update the race display in controls."""
