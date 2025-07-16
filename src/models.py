@@ -185,8 +185,8 @@ class GameState:
 
     def generate_exotic_finish_for_race(self):
         """Generate 1 random exotic finish for the current race, excluding used ones."""
-        # Don't add exotic finishes on the final race (race 4)
-        if self.current_race >= self.max_races:
+        # Don't add exotic finishes beyond the final race (race 4)
+        if self.current_race > self.max_races:
             return
 
         available_exotics = [exotic for exotic in EXOTIC_FINISHES if exotic["id"] not in self.used_exotic_finishes]
@@ -211,11 +211,11 @@ class GameState:
         # Generate new prop bets for the next race
         self.generate_prop_bets_for_race()
 
-        # Generate new exotic finish for the next race (except final race)
+        # Generate new exotic finish for the next race (including final race)
         # Race 1->2: add 1 exotic (total: 2)
         # Race 2->3: add 1 exotic (total: 3)
-        # Race 3->4: don't add any (total stays: 3)
-        if self.current_race < self.max_races:
+        # Race 3->4: add 1 exotic (total: 4)
+        if self.current_race <= self.max_races:
             self.generate_exotic_finish_for_race()
 
     def start_race(self):

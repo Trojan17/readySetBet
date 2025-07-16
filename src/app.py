@@ -369,10 +369,12 @@ class ReadySetBetApp:
             self.game_state.reset_game()
             self.betting_board.reset_all_buttons()
             self.betting_board.update_prop_bets(self.game_state.current_prop_bets)
+            self.betting_board.update_exotic_finishes(self.game_state.current_exotic_finishes)
+            self.betting_board.set_betting_enabled(False)
             self.update_displays()
             self.update_race_display()
             self.results_text.delete(1.0, tk.END)
-            self.status_var.set("Game reset - Add players to begin")
+            self.status_var.set("Game reset - Add players and click 'Start Race' to begin!")
 
     def on_bet_double_click(self, event):
         """Handle double-click on bet to remove it."""
@@ -407,6 +409,9 @@ class ReadySetBetApp:
             if bet.is_prop_bet():
                 type_match = bet_type.startswith("Prop #") and str(bet.prop_bet_id) in bet_type
                 horse_match = horse_name == "Prop"
+            elif bet.is_exotic_bet():
+                type_match = bet_type.startswith("Exotic #") and str(bet.exotic_finish_id) in bet_type
+                horse_match = horse_name == "Exotic"
             else:
                 type_match = bet.bet_type == bet_type
                 horse_match = bet.horse == horse_name or (bet.horse == "Special" and horse_name == "Special")
@@ -503,21 +508,6 @@ class ReadySetBetApp:
         """Update the race display in controls."""
         if hasattr(self, 'race_label'):
             self.race_label.configure(text=f"Race: {self.game_state.current_race}/{MAX_RACES}")
-
-    def _update_race_widget(self, widget):
-        """Recursively update race display widgets - legacy method."""
-        # This method is kept for compatibility but the direct approach above is preferred
-        try:
-            if hasattr(widget, 'winfo_children'):
-                for child in widget.winfo_children():
-                    if isinstance(child, ttk.Label):
-                        text = str(child.cget("text"))
-                        if "Race:" in text:
-                            child.configure(text=f"Race: {self.game_state.current_race}/{MAX_RACES}")
-                    self._update_race_widget(child)
-        except Exception as e:
-            # If there's an error updating a widget, just skip it
-            pass
 
     def log_message(self, message: str):
         """Log a message to the results display."""
