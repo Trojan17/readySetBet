@@ -60,8 +60,9 @@ class ReadySetBetApp:
         control_frame = ttk.LabelFrame(parent, text="Game Controls", padding="5")
         control_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
 
-        ttk.Label(control_frame, text=f"Race: {self.game_state.current_race}/{MAX_RACES}").grid(row=0, column=0,
-                                                                                                   padx=(0, 20))
+        # Store reference to the race label for easy updating
+        self.race_label = ttk.Label(control_frame, text=f"Race: {self.game_state.current_race}/{MAX_RACES}")
+        self.race_label.grid(row=0, column=0, padx=(0, 20))
 
         buttons = [
             ("Add Player", self.add_player),
@@ -369,7 +370,7 @@ class ReadySetBetApp:
             self.betting_board.reset_all_buttons()
             self.betting_board.update_prop_bets(self.game_state.current_prop_bets)
             self.update_displays()
-            self.update_round_display()
+            self.update_race_display()
             self.results_text.delete(1.0, tk.END)
             self.status_var.set("Game reset - Add players to begin")
 
@@ -500,16 +501,23 @@ class ReadySetBetApp:
 
     def update_race_display(self):
         """Update the race display in controls."""
-        for widget in self.root.winfo_children():
-            self._update_race_widget(widget)
+        if hasattr(self, 'race_label'):
+            self.race_label.configure(text=f"Race: {self.game_state.current_race}/{MAX_RACES}")
 
     def _update_race_widget(self, widget):
-        """Recursively update race display widgets."""
-        if hasattr(widget, 'winfo_children'):
-            for child in widget.winfo_children():
-                if isinstance(child, ttk.Label) and "Race:" in str(child.cget("text")):
-                    child.configure(text=f"Race: {self.game_state.current_race}/{MAX_RACES}")
-                self._update_race_widget(child)
+        """Recursively update race display widgets - legacy method."""
+        # This method is kept for compatibility but the direct approach above is preferred
+        try:
+            if hasattr(widget, 'winfo_children'):
+                for child in widget.winfo_children():
+                    if isinstance(child, ttk.Label):
+                        text = str(child.cget("text"))
+                        if "Race:" in text:
+                            child.configure(text=f"Race: {self.game_state.current_race}/{MAX_RACES}")
+                    self._update_race_widget(child)
+        except Exception as e:
+            # If there's an error updating a widget, just skip it
+            pass
 
     def log_message(self, message: str):
         """Log a message to the results display."""

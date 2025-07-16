@@ -5,7 +5,6 @@ from typing import Dict, List, Optional
 from .constants import PLAYER_TOKENS, STARTING_MONEY, PROP_BETS, EXOTIC_FINISHES
 import random
 
-
 @dataclass
 class Player:
     """Represents a player in the game."""
@@ -42,7 +41,6 @@ class Player:
     def subtract_money(self, amount: int):
         """Subtract money from the player, minimum 0."""
         self.money = max(0, self.money - amount)
-
 
 @dataclass
 class Bet:
@@ -81,7 +79,6 @@ class Bet:
         """Check if this is an exotic finish bet."""
         return self.exotic_finish_id is not None
 
-
 @dataclass
 class RaceResults:
     """Represents the results of a race."""
@@ -100,7 +97,6 @@ class RaceResults:
         elif bet_type == "show":
             return horse in self.show_horses
         return False
-
 
 @dataclass
 class GameState:
@@ -189,8 +185,8 @@ class GameState:
 
     def generate_exotic_finish_for_race(self):
         """Generate 1 random exotic finish for the current race, excluding used ones."""
+        # Don't add exotic finishes on the final race (race 4)
         if self.current_race >= self.max_races:
-            # No exotic finishes added on the last race
             return
 
         available_exotics = [exotic for exotic in EXOTIC_FINISHES if exotic["id"] not in self.used_exotic_finishes]
@@ -215,7 +211,10 @@ class GameState:
         # Generate new prop bets for the next race
         self.generate_prop_bets_for_race()
 
-        # Generate new exotic finish for the next race (except last race)
+        # Generate new exotic finish for the next race (except final race)
+        # Race 1->2: add 1 exotic (total: 2)
+        # Race 2->3: add 1 exotic (total: 3)
+        # Race 3->4: don't add any (total stays: 3)
         if self.current_race < self.max_races:
             self.generate_exotic_finish_for_race()
 
@@ -239,10 +238,10 @@ class GameState:
         self.used_prop_bets.clear()
         self.current_prop_bets.clear()
         self.used_exotic_finishes.clear()
-        self.current_exotic_finishes.clear()
+        self.current_exotic_finishes.clear()  # Clear existing exotic finishes
 
-        # Generate prop bets for race 1
+        # Generate fresh prop bets for race 1
         self.generate_prop_bets_for_race()
 
-        # Generate first exotic finish for race 1
+        # Generate fresh exotic finish for race 1 (starts with just 1)
         self.generate_exotic_finish_for_race()
