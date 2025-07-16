@@ -1,7 +1,7 @@
 """Constants and configuration for the Ready Set Bet application."""
 
 # Game configuration
-MAX_ROUNDS = 4
+MAX_RACES = 4
 STARTING_MONEY = 0
 MINIMUM_MONEY = 0
 
@@ -59,6 +59,38 @@ SPECIAL_BETS = [
     ("7 Finishes 5th or Worse", "4x", "black")
 ]
 
+# Prop bets configuration - All available prop bets
+PROP_BETS = [
+    {"id": 1, "description": "Horse 8 > Horses 5 & 9", "multiplier": 3, "penalty": 3},
+    {"id": 2, "description": "Horse 4 > Horse 9", "multiplier": 2, "penalty": 1},
+    {"id": 3, "description": "Horse 8 > Horses 2/3, 4, 10, 11/12", "multiplier": 2, "penalty": 3},
+    {"id": 4, "description": "Horse 9 > Horse 8", "multiplier": 2, "penalty": 1},
+    {"id": 5, "description": "Horse 5 > Horse 8", "multiplier": 3, "penalty": 3},
+    {"id": 6, "description": "Horse 4 > Horse 5", "multiplier": 3, "penalty": 3},
+    {"id": 7, "description": "Horse 11/12 > Horse 8", "multiplier": 4, "penalty": 3},
+    {"id": 8, "description": "Horse 9 > Horse 6", "multiplier": 3, "penalty": 3},
+    {"id": 9, "description": "Horse 9 > Horse 7", "multiplier": 4, "penalty": 4},
+    {"id": 10, "description": "Horse 7 > Horses 2/3 & 4 & 10 & 11/12", "multiplier": 2, "penalty": 6},
+    {"id": 11, "description": "Horse 2/3 > Horse 5", "multiplier": 2, "penalty": 1},
+    {"id": 12, "description": "Horse 10 > Horse 8", "multiplier": 3, "penalty": 2},
+    {"id": 13, "description": "Horse 11/12 > Horse 9", "multiplier": 3, "penalty": 3},
+    {"id": 14, "description": "Horse 2/3 > Horse 8", "multiplier": 4, "penalty": 3},
+    {"id": 15, "description": "Horse 4 > Horse 6", "multiplier": 4, "penalty": 3},
+    {"id": 16, "description": "Horse 10 > Horse 9", "multiplier": 2, "penalty": 1},
+    {"id": 17, "description": "Horse 5 > Horse 6", "multiplier": 2, "penalty": 1},
+    {"id": 18, "description": "Horse 11/12 > Horse 6", "multiplier": 3, "penalty": 2},
+    {"id": 19, "description": "Horse 11/12 > Horse 5", "multiplier": 2, "penalty": 1},
+    {"id": 20, "description": "Horse 4 > Horse 8", "multiplier": 3, "penalty": 2},
+    {"id": 21, "description": "Horse 6 > Horses 2/3, 4, 10, 11/12", "multiplier": 3, "penalty": 5},
+    {"id": 22, "description": "Horse 5 > Horse 7", "multiplier": 3, "penalty": 2},
+    {"id": 23, "description": "Horse 2/3 > Horse 9", "multiplier": 3, "penalty": 3},
+    {"id": 24, "description": "Horse 6 > Horse 5, 9", "multiplier": 3, "penalty": 3},
+    {"id": 25, "description": "Horse 10 > Horse 5", "multiplier": 3, "penalty": 3},
+    {"id": 26, "description": "Horse 2/3 > Horse 6", "multiplier": 3, "penalty": 2},
+    {"id": 27, "description": "Horse 10 > Horse 6", "multiplier": 4, "penalty": 3},
+    {"id": 28, "description": "Horse 7 > Horse 5 & 9", "multiplier": 2, "penalty": 5}
+]
+
 # UI Colors
 COLORS = {
     "show": {
@@ -82,6 +114,10 @@ COLORS = {
         "orange": {"bg": "#F57C00", "fg": "white"},
         "red": {"bg": "#D32F2F", "fg": "white"},
         "black": {"bg": "#424242", "fg": "white"}
+    },
+    "prop": {
+        "bg": "#7B1FA2",  # Purple
+        "fg": "white"
     }
 }
 

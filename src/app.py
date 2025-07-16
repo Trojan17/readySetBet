@@ -8,8 +8,8 @@ from typing import Optional
 from .models import GameState, Bet
 from .game_logic import GameLogic
 from .ui_components import BettingBoard
-from .dialogs import StandardBetDialog, SpecialBetDialog, RaceResultsDialog, AddPlayerDialog
-from .constants import HORSES, MAX_ROUNDS
+from .dialogs import StandardBetDialog, SpecialBetDialog, PropBetDialog, RaceResultsDialog, AddPlayerDialog
+from .constants import HORSES, MAX_RACES
 
 
 class ReadySetBetApp:
@@ -18,11 +18,14 @@ class ReadySetBetApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Ready Set Bet - Betting Board")
-        self.root.geometry("1200x800")
+        self.root.geometry("1200x900")
 
         # Initialize game state and logic
         self.game_state = GameState()
         self.game_logic = GameLogic(self.game_state)
+
+        # Generate initial prop bets
+        self.game_state.generate_prop_bets_for_race()
 
         # UI components
         self.betting_board = None
@@ -56,14 +59,14 @@ class ReadySetBetApp:
         control_frame = ttk.LabelFrame(parent, text="Game Controls", padding="5")
         control_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
 
-        ttk.Label(control_frame, text=f"Round: {self.game_state.current_round}/{MAX_ROUNDS}").grid(row=0, column=0,
+        ttk.Label(control_frame, text=f"Race: {self.game_state.current_race}/{MAX_RACES}").grid(row=0, column=0,
                                                                                                    padx=(0, 20))
 
         buttons = [
             ("Add Player", self.add_player),
             ("Start Race", self.start_race),
             ("End Race", self.end_race),
-            ("Next Round", self.next_round),
+            ("Next Race", self.next_race),
             ("Reset Game", self.reset_game)
         ]
 
@@ -90,7 +93,13 @@ class ReadySetBetApp:
         betting_frame = ttk.LabelFrame(parent, text="Betting Board", padding="5")
         betting_frame.grid(row=1, column=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(10, 0))
 
-        self.betting_board = BettingBoard(betting_frame, self.on_standard_bet, self.on_special_bet)
+        self.betting_board = BettingBoard(betting_frame, self.on_standard_bet, self.on_special_bet, self.on_prop_bet)
+
+        # Update prop bets display
+        self.betting_board.update_prop_bets(self.game_state.current_prop_bets)
+
+        # Initially disable betting until race starts
+        self.betting_board.set_betting_enabled(False)
 
         # Connect bet removal functionality
         self.betting_board.bets_tree.bind("<Double-1>", self.on_bet_double_click)
@@ -131,6 +140,10 @@ class ReadySetBetApp:
             messagebox.showerror("Error", "No players added!")
             return
 
+        if not self.game_state.race_active:
+            messagebox.showerror("Error", "Race must be started before placing bets!")
+            return
+
         spot_key = f"{horse}_{bet_type}_{row}_{col}"
         if spot_key in self.game_state.locked_spots:
             messagebox.showerror("Error",
@@ -167,6 +180,10 @@ class ReadySetBetApp:
             messagebox.showerror("Error", "No players added!")
             return
 
+        if not self.game_state.race_active:
+            messagebox.showerror("Error", "Race must be started before placing bets!")
+            return
+
         special_spot_key = f"special_{bet_name}"
         if special_spot_key in self.game_state.locked_spots:
             messagebox.showerror("Error",
@@ -189,9 +206,47 @@ class ReadySetBetApp:
             )
 
             if self.game_state.place_bet(bet):
+                self.betting_board.update_special_bet_appearance(bet_name, result["player"])
                 self.update_displays()
                 self.status_var.set(
                     f"{result['player']} placed ${result['token_value']} token on special bet: {bet_name}")
+
+    def on_prop_bet(self, prop_bet: dict):
+        """Handle prop bet placement."""
+        if not self.game_state.players:
+            messagebox.showerror("Error", "No players added!")
+            return
+
+        if not self.game_state.race_active:
+            messagebox.showerror("Error", "Race must be started before placing bets!")
+            return
+
+        prop_spot_key = f"prop_{prop_bet['id']}"
+        if prop_spot_key in self.game_state.locked_spots:
+            messagebox.showerror("Error",
+                                 f"This prop bet is already taken by {self.game_state.locked_spots[prop_spot_key]}!")
+            return
+
+        dialog = PropBetDialog(self.root, self.game_state.players, prop_bet)
+        result = dialog.show()
+
+        if result:
+            bet = Bet(
+                player=result["player"],
+                horse="Prop",
+                bet_type=prop_bet["description"],
+                multiplier=prop_bet["multiplier"],
+                penalty=prop_bet["penalty"],
+                token_value=result["token_value"],
+                spot_key=prop_spot_key,
+                prop_bet_id=prop_bet["id"]
+            )
+
+            if self.game_state.place_bet(bet):
+                self.betting_board.update_prop_bet_appearance(prop_bet["id"], result["player"])
+                self.update_displays()
+                self.status_var.set(
+                    f"{result['player']} placed ${result['token_value']} token on prop bet: {prop_bet['description'][:30]}...")
 
     def start_race(self):
         """Start a race."""
@@ -199,6 +254,8 @@ class ReadySetBetApp:
             messagebox.showerror("Error", "No players added!")
             return
 
+        self.game_state.start_race()
+        self.betting_board.set_betting_enabled(True)
         self.status_var.set("Race in progress - Place your bets!")
         self.log_message("Race started - Betting is now open!")
 
@@ -208,43 +265,55 @@ class ReadySetBetApp:
             messagebox.showerror("Error", "No bets placed!")
             return
 
-        dialog = RaceResultsDialog(self.root, HORSES)
+        self.game_state.end_race()
+        self.betting_board.set_betting_enabled(False)
+
+        dialog = RaceResultsDialog(self.root, HORSES, self.game_state.current_prop_bets, self.game_state.current_bets)
         if dialog.result:
             winners, losers = self.game_logic.process_race_results(
                 dialog.result["win"],
                 dialog.result["place"],
-                dialog.result["show"]
+                dialog.result["show"],
+                dialog.result.get("prop_results", {})
             )
 
-            self.log_race_results(dialog.result["win"], dialog.result["place"], dialog.result["show"], winners, losers)
+            self.log_race_results(dialog.result["win"], dialog.result["place"], dialog.result["show"],
+                                winners, losers, dialog.result.get("prop_results", {}))
 
             # Clear bets and reset board
             self.game_state.current_bets.clear()
             self.game_state.locked_spots.clear()
             self.betting_board.reset_all_buttons()
+            self.betting_board.reset_prop_buttons_to_purple(self.game_state.current_prop_bets)
+
+            # Ensure betting is disabled after race ends
+            self.betting_board.set_betting_enabled(False)
 
             self.update_displays()
-            self.status_var.set(f"Race {self.game_state.current_round} completed!")
+            self.status_var.set(f"Race {self.game_state.current_race} completed - Click 'Next Race' to continue!")
 
-    def next_round(self):
-        """Advance to the next round."""
+    def next_race(self):
+        """Advance to the next race."""
         if self.game_logic.is_game_complete():
             self.end_game()
             return
 
-        self.game_state.next_round()
+        self.game_state.next_race()
         self.betting_board.reset_all_buttons()
+        self.betting_board.update_prop_bets(self.game_state.current_prop_bets)
+        self.betting_board.set_betting_enabled(False)
         self.update_displays()
-        self.update_round_display()
+        self.update_race_display()
 
-        self.status_var.set(f"Round {self.game_state.current_round} - All tokens reset! Ready for next race!")
-        self.log_message(f"Starting Round {self.game_state.current_round} - All player tokens reset")
+        self.status_var.set(f"Race {self.game_state.current_race} ready - Click 'Start Race' to begin betting!")
+        self.log_message(f"Race {self.game_state.current_race} prepared - All player tokens reset, new prop bets generated")
 
     def reset_game(self):
         """Reset the entire game."""
         if messagebox.askyesno("Reset Game", "Are you sure you want to reset the game?"):
             self.game_state.reset_game()
             self.betting_board.reset_all_buttons()
+            self.betting_board.update_prop_bets(self.game_state.current_prop_bets)
             self.update_displays()
             self.update_round_display()
             self.results_text.delete(1.0, tk.END)
@@ -279,9 +348,17 @@ class ReadySetBetApp:
         bet_id_to_remove = None
 
         for bet_id, bet in self.game_state.current_bets.items():
+            # Handle different bet types
+            if bet.is_prop_bet():
+                type_match = bet_type.startswith("Prop #") and str(bet.prop_bet_id) in bet_type
+                horse_match = horse_name == "Prop"
+            else:
+                type_match = bet.bet_type == bet_type
+                horse_match = bet.horse == horse_name or (bet.horse == "Special" and horse_name == "Special")
+
             if (bet.player == player_name and
-                    bet.horse == horse_name and
-                    bet.bet_type == bet_type and
+                    horse_match and
+                    type_match and
                     str(bet.token_value) == token_value):
                 bet_to_remove = bet
                 bet_id_to_remove = bet_id
@@ -292,24 +369,34 @@ class ReadySetBetApp:
             return
 
         if messagebox.askyesno("Confirm Removal",
-                               f"Remove {player_name}'s ${token_value} bet on {horse_name} ({bet_type})?"):
+                               f"Remove {player_name}'s ${token_value} bet?"):
 
             # Remove bet and unlock spot
             self.game_state.remove_bet(bet_id_to_remove)
 
-            # Reset button appearance if it's a standard bet
-            if not bet_to_remove.is_special_bet() and bet_to_remove.row is not None:
+            # Reset button appearance
+            if bet_to_remove.is_prop_bet():
+                # Find the prop bet data to reset appearance
+                prop_bet = next((p for p in self.game_state.current_prop_bets if p["id"] == bet_to_remove.prop_bet_id), None)
+                if prop_bet:
+                    self.betting_board.reset_prop_bet_appearance(bet_to_remove.prop_bet_id, prop_bet)
+            elif bet_to_remove.is_special_bet():
+                self.betting_board.reset_special_bet_appearance(bet_to_remove.bet_type)
+            elif bet_to_remove.row is not None:
                 self.betting_board.reset_button_appearance(
                     bet_to_remove.horse, bet_to_remove.bet_type,
                     bet_to_remove.row, bet_to_remove.col)
 
             self.update_displays()
-            self.status_var.set(f"Removed {player_name}'s bet on {horse_name} ({bet_type})")
+            self.status_var.set(f"Removed {player_name}'s bet")
 
     def clear_bets(self):
         """Clear all bets."""
         self.game_state.clear_all_bets()
         self.betting_board.reset_all_buttons()
+        self.betting_board.reset_prop_buttons_to_purple(self.game_state.current_prop_bets)
+        # Keep betting enabled if race is active
+        self.betting_board.set_betting_enabled(self.game_state.race_active)
         self.update_displays()
         self.status_var.set("All bets cleared, tokens returned, and spots unlocked")
 
@@ -345,18 +432,18 @@ class ReadySetBetApp:
             self.player_listbox.insert(tk.END,
                                        f"{player.name}: ${player.money} | Tokens: {tokens_str} | VIP: {vip_count}")
 
-    def update_round_display(self):
-        """Update the round display in controls."""
+    def update_race_display(self):
+        """Update the race display in controls."""
         for widget in self.root.winfo_children():
-            self._update_round_widget(widget)
+            self._update_race_widget(widget)
 
-    def _update_round_widget(self, widget):
-        """Recursively update round display widgets."""
+    def _update_race_widget(self, widget):
+        """Recursively update race display widgets."""
         if hasattr(widget, 'winfo_children'):
             for child in widget.winfo_children():
-                if isinstance(child, ttk.Label) and "Round:" in str(child.cget("text")):
-                    child.configure(text=f"Round: {self.game_state.current_round}/{MAX_ROUNDS}")
-                self._update_round_widget(child)
+                if isinstance(child, ttk.Label) and "Race:" in str(child.cget("text")):
+                    child.configure(text=f"Race: {self.game_state.current_race}/{MAX_RACES}")
+                self._update_race_widget(child)
 
     def log_message(self, message: str):
         """Log a message to the results display."""
@@ -364,12 +451,21 @@ class ReadySetBetApp:
         self.results_text.insert(tk.END, f"[{timestamp}] {message}\n")
         self.results_text.see(tk.END)
 
-    def log_race_results(self, win_horses, place_horses, show_horses, winners, losers):
+    def log_race_results(self, win_horses, place_horses, show_horses, winners, losers, prop_results):
         """Log race results and payouts."""
-        self.log_message(f"Race {self.game_state.current_round} Results:")
+        self.log_message(f"Race {self.game_state.current_race} Results:")
         self.log_message(f"WIN: Horses {', '.join(map(str, win_horses))}")
         self.log_message(f"PLACE: Horses {', '.join(map(str, place_horses))}")
         self.log_message(f"SHOW: Horses {', '.join(map(str, show_horses))}")
+
+        # Log prop bet results
+        if prop_results:
+            self.log_message("Prop Bet Results:")
+            for prop_id, won in prop_results.items():
+                prop_bet = next((p for p in self.game_state.current_prop_bets if p["id"] == prop_id), None)
+                if prop_bet:
+                    result_text = "WON" if won else "LOST"
+                    self.log_message(f"  {prop_bet['description']}: {result_text}")
 
         if winners:
             self.log_message("Winners:")

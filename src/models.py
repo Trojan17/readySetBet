@@ -2,7 +2,8 @@
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-from .constants import PLAYER_TOKENS, STARTING_MONEY
+from .constants import PLAYER_TOKENS, STARTING_MONEY, PROP_BETS
+import random
 
 @dataclass
 class Player:
@@ -53,6 +54,7 @@ class Bet:
     spot_key: str
     row: Optional[int] = None
     col: Optional[int] = None
+    prop_bet_id: Optional[int] = None
 
     @property
     def potential_payout(self) -> int:
@@ -68,12 +70,17 @@ class Bet:
         """Check if this is a special bet."""
         return self.horse == "Special"
 
+    def is_prop_bet(self) -> bool:
+        """Check if this is a prop bet."""
+        return self.prop_bet_id is not None
+
 @dataclass
 class RaceResults:
     """Represents the results of a race."""
     win_horses: List[str]
     place_horses: List[str]
     show_horses: List[str]
+    prop_bet_results: Dict[int, bool] = field(default_factory=dict)
 
     def is_winner(self, horse: str, bet_type: str) -> bool:
         """Check if a horse won for a specific bet type."""
@@ -88,13 +95,16 @@ class RaceResults:
 @dataclass
 class GameState:
     """Represents the current state of the game."""
-    current_round: int = 1
-    max_rounds: int = 4
+    current_race: int = 1
+    max_races: int = 4
+    race_active: bool = False
     players: Dict[str, Player] = field(default_factory=dict)
     current_bets: Dict[str, Bet] = field(default_factory=dict)
     locked_spots: Dict[str, str] = field(default_factory=dict)
     race_results: Optional[RaceResults] = None
     game_log: List[str] = field(default_factory=list)
+    used_prop_bets: List[int] = field(default_factory=list)
+    current_prop_bets: List[Dict] = field(default_factory=list)
 
     def add_player(self, name: str) -> bool:
         """Add a new player. Returns True if successful."""
@@ -105,6 +115,9 @@ class GameState:
 
     def place_bet(self, bet: Bet) -> bool:
         """Place a bet. Returns True if successful."""
+        if not self.race_active:
+            return False
+
         if bet.spot_key in self.locked_spots:
             return False
 
@@ -145,22 +158,57 @@ class GameState:
         self.current_bets.clear()
         self.locked_spots.clear()
 
-    def next_round(self):
-        """Advance to the next round."""
-        self.current_round += 1
+    def generate_prop_bets_for_race(self):
+        """Generate 5 random prop bets for the current race, excluding used ones."""
+        available_props = [prop for prop in PROP_BETS if prop["id"] not in self.used_prop_bets]
+
+        if len(available_props) < 5:
+            # If we don't have enough unused prop bets, reset and use all
+            self.used_prop_bets.clear()
+            available_props = PROP_BETS.copy()
+
+        selected_props = random.sample(available_props, min(5, len(available_props)))
+        self.current_prop_bets = selected_props.copy()
+
+        # Mark these prop bets as used
+        for prop in selected_props:
+            if prop["id"] not in self.used_prop_bets:
+                self.used_prop_bets.append(prop["id"])
+
+    def next_race(self):
+        """Advance to the next race."""
+        self.current_race += 1
+        self.race_active = False
         self.current_bets.clear()
         self.locked_spots.clear()
         self.race_results = None
 
-        # Reset all player tokens
+        # Reset all player tokens for the new race
         for player in self.players.values():
             player.reset_tokens()
 
+        # Generate new prop bets for the next race
+        self.generate_prop_bets_for_race()
+
+    def start_race(self):
+        """Start the current race - enable betting."""
+        self.race_active = True
+
+    def end_race(self):
+        """End the current race - disable betting."""
+        self.race_active = False
+
     def reset_game(self):
         """Reset the entire game."""
-        self.current_round = 1
+        self.current_race = 1
+        self.race_active = False
         self.players.clear()
         self.current_bets.clear()
         self.locked_spots.clear()
         self.race_results = None
         self.game_log.clear()
+        self.used_prop_bets.clear()
+        self.current_prop_bets.clear()
+
+        # Generate prop bets for race 1
+        self.generate_prop_bets_for_race()

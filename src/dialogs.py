@@ -210,12 +210,80 @@ class SpecialBetDialog(BetDialog):
         ttk.Button(self.dialog, text="Place Bet", command=place_special_action).pack(pady=10)
 
 
+class PropBetDialog(BetDialog):
+    """Dialog for placing prop bets."""
+
+    def __init__(self, parent, players: Dict, prop_bet: Dict):
+        self.prop_bet = prop_bet
+        super().__init__(parent, players, "Place Prop Bet")
+        self.setup_content()
+
+    def setup_content(self):
+        """Set up the dialog content."""
+        # Bet information
+        ttk.Label(self.dialog, text="Prop Bet", font=("Arial", 14, "bold")).pack(pady=5)
+        ttk.Label(self.dialog, text=self.prop_bet["description"],
+                  font=("Arial", 11, "bold"), wraplength=300).pack(pady=5)
+
+        ttk.Label(self.dialog,
+                  text=f"Win: {self.prop_bet['multiplier']}x multiplier | Lose: -${self.prop_bet['penalty']} penalty",
+                  font=("Arial", 10)).pack(pady=2)
+
+        # Player and token selection
+        player_var = self.create_player_selection()
+        token_var = self.create_token_selection(player_var)
+
+        # Calculation display
+        calculation_label = ttk.Label(self.dialog, text="", font=("Arial", 11, "bold"))
+        calculation_label.pack(pady=10)
+
+        def update_calculation(*args):
+            if token_var.get():
+                token_value = int(token_var.get())
+                potential_win = token_value * self.prop_bet["multiplier"]
+                calculation_label.configure(
+                    text=f"If WIN: +${potential_win} | If LOSE: -${self.prop_bet['penalty']}",
+                    foreground="purple")
+            else:
+                calculation_label.configure(text="")
+
+        token_var.trace("w", update_calculation)
+
+        # Action button
+        def place_prop_action():
+            player = player_var.get()
+            token_value = token_var.get()
+
+            if not player:
+                messagebox.showerror("Error", "Please select a player!")
+                return
+
+            if not token_value:
+                messagebox.showerror("Error", "Please select a token!")
+                return
+
+            if self.players[player].get_available_tokens(token_value) <= 0:
+                messagebox.showerror("Error", "No tokens of this value available!")
+                return
+
+            self.result = {
+                "player": player,
+                "token_value": int(token_value),
+                "prop_bet_id": self.prop_bet["id"]
+            }
+            self.dialog.destroy()
+
+        ttk.Button(self.dialog, text="Place Prop Bet", command=place_prop_action).pack(pady=10)
+
+
 class RaceResultsDialog:
     """Dialog for entering race results."""
 
-    def __init__(self, parent, horses: List[str]):
+    def __init__(self, parent, horses: List[str], prop_bets: List[Dict], current_bets: Dict):
         self.parent = parent
         self.horses = horses
+        self.prop_bets = prop_bets
+        self.current_bets = current_bets
         self.result = None
         self.setup_dialog()
 
@@ -223,15 +291,30 @@ class RaceResultsDialog:
         """Set up the dialog."""
         dialog = tk.Toplevel(self.parent)
         dialog.title("Enter Race Results")
-        dialog.geometry("400x300")
+        dialog.geometry("500x600")
         dialog.transient(self.parent)
         dialog.grab_set()
 
-        ttk.Label(dialog, text="Enter finishing positions (separate multiple horses with commas):").pack(pady=10)
+        # Create scrollable frame
+        canvas = tk.Canvas(dialog)
+        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Horse results section
+        ttk.Label(scrollable_frame, text="Enter finishing positions (separate multiple horses with commas):",
+                  font=("Arial", 12, "bold")).pack(pady=10)
 
         entries = {}
         for i, position in enumerate(["Win (1st)", "Place (1st-2nd)", "Show (1st-3rd)"]):
-            frame = ttk.Frame(dialog)
+            frame = ttk.Frame(scrollable_frame)
             frame.pack(pady=5)
 
             ttk.Label(frame, text=f"{position}:").pack(side=tk.LEFT, padx=5)
@@ -240,11 +323,36 @@ class RaceResultsDialog:
             entries[position] = entry
 
         # Examples
-        ttk.Label(dialog, text="Examples:", font=("Arial", 9, "bold")).pack(pady=(10, 0))
-        ttk.Label(dialog, text="Win: 7 (only one horse can win)", font=("Arial", 8)).pack()
-        ttk.Label(dialog, text="Place: 7,2/3 (horses that finished 1st or 2nd)", font=("Arial", 8)).pack()
-        ttk.Label(dialog, text="Show: 7,2/3,11/12 (horses that finished 1st, 2nd, or 3rd)", font=("Arial", 8)).pack()
-        ttk.Label(dialog, text=f"Use horse names: {', '.join(self.horses)}", font=("Arial", 8)).pack()
+        ttk.Label(scrollable_frame, text="Examples:", font=("Arial", 9, "bold")).pack(pady=(10, 0))
+        ttk.Label(scrollable_frame, text="Win: 7 (only one horse can win)", font=("Arial", 8)).pack()
+        ttk.Label(scrollable_frame, text="Place: 7,2/3 (horses that finished 1st or 2nd)", font=("Arial", 8)).pack()
+        ttk.Label(scrollable_frame, text="Show: 7,2/3,11/12 (horses that finished 1st, 2nd, or 3rd)", font=("Arial", 8)).pack()
+        ttk.Label(scrollable_frame, text=f"Use horse names: {', '.join(self.horses)}", font=("Arial", 8)).pack()
+
+        # Prop bet results section
+        # Only show prop bets that have actual bets placed on them
+        prop_bets_with_bets = self._get_prop_bets_with_bets()
+
+        if prop_bets_with_bets:
+            ttk.Separator(scrollable_frame, orient='horizontal').pack(fill='x', pady=20)
+            ttk.Label(scrollable_frame, text="Prop Bet Results:", font=("Arial", 12, "bold")).pack(pady=10)
+
+            prop_vars = {}
+            for prop_bet in prop_bets_with_bets:
+                frame = ttk.Frame(scrollable_frame)
+                frame.pack(pady=5, padx=20, fill='x')
+
+                ttk.Label(frame, text=prop_bet["description"],
+                         wraplength=300, font=("Arial", 9)).pack(anchor='w')
+
+                var = tk.StringVar(value="")
+                result_frame = ttk.Frame(frame)
+                result_frame.pack(anchor='w', pady=2)
+
+                ttk.Radiobutton(result_frame, text="Won", variable=var, value="won").pack(side=tk.LEFT, padx=5)
+                ttk.Radiobutton(result_frame, text="Lost", variable=var, value="lost").pack(side=tk.LEFT, padx=5)
+
+                prop_vars[prop_bet["id"]] = var
 
         def process_results():
             try:
@@ -269,18 +377,56 @@ class RaceResultsDialog:
                     messagebox.showerror("Error", "All position types must have at least one horse!")
                     return
 
+                # Parse prop bet results
+                prop_results = {}
+                prop_bets_with_bets = self._get_prop_bets_with_bets()
+                if prop_bets_with_bets:
+                    for prop_bet in prop_bets_with_bets:
+                        prop_id = prop_bet["id"]
+                        result = prop_vars[prop_id].get()
+                        if result == "won":
+                            prop_results[prop_id] = True
+                        elif result == "lost":
+                            prop_results[prop_id] = False
+                        else:
+                            messagebox.showerror("Error", f"Please select a result for prop bet: {prop_bet['description'][:30]}...")
+                            return
+
                 self.result = {
                     "win": win_horses,
                     "place": place_horses,
-                    "show": show_horses
+                    "show": show_horses,
+                    "prop_results": prop_results
                 }
                 dialog.destroy()
 
             except Exception as e:
-                messagebox.showerror("Error", f"Please enter valid horse names: {str(e)}")
+                messagebox.showerror("Error", f"Please enter valid data: {str(e)}")
 
-        ttk.Button(dialog, text="Process Results", command=process_results).pack(pady=20)
+        ttk.Button(scrollable_frame, text="Process Results", command=process_results).pack(pady=20)
+
+        # Pack canvas and scrollbar
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
         dialog.wait_window()
+
+    def _get_prop_bets_with_bets(self) -> List[Dict]:
+        """Get only the prop bets that have actual bets placed on them."""
+        prop_bets_with_bets = []
+
+        # Find which prop bets have actual bets
+        prop_bet_ids_with_bets = set()
+        for bet in self.current_bets.values():
+            if bet.is_prop_bet():
+                prop_bet_ids_with_bets.add(bet.prop_bet_id)
+
+        # Return only prop bets that have bets placed
+        for prop_bet in self.prop_bets:
+            if prop_bet["id"] in prop_bet_ids_with_bets:
+                prop_bets_with_bets.append(prop_bet)
+
+        return prop_bets_with_bets
 
 
 class AddPlayerDialog:

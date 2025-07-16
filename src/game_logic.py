@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Tuple
 from .models import GameState, Player, Bet, RaceResults
-from .constants import VIP_CARDS
+from .constants import VIP_CARDS, PROP_BETS
 import random
 
 
@@ -12,32 +12,53 @@ class GameLogic:
     def __init__(self, game_state: GameState):
         self.game_state = game_state
 
-    def process_race_results(self, win_horses: List[str], place_horses: List[str], show_horses: List[str]) -> Tuple[
-        List[str], List[str]]:
+    def process_race_results(self, win_horses: List[str], place_horses: List[str], show_horses: List[str],
+                           prop_results: Dict[int, bool]) -> Tuple[List[str], List[str]]:
         """Process race results and calculate payouts."""
-        self.game_state.race_results = RaceResults(win_horses, place_horses, show_horses)
+        self.game_state.race_results = RaceResults(win_horses, place_horses, show_horses, prop_results)
 
         winners = []
         losers = []
 
         for bet in self.game_state.current_bets.values():
             player = self.game_state.players[bet.player]
-            won = self._is_winning_bet(bet, win_horses, place_horses, show_horses)
+
+            if bet.is_prop_bet():
+                # Handle prop bet
+                won = self._is_winning_prop_bet(bet, prop_results)
+            else:
+                # Handle standard and special bets
+                won = self._is_winning_bet(bet, win_horses, place_horses, show_horses)
 
             if won:
                 payout = bet.potential_payout
                 player.add_money(payout)
-                winners.append(f"{bet.player}: +${payout} ({bet.bet_type} with ${bet.token_value} token)")
+                bet_description = self._get_bet_description(bet)
+                winners.append(f"{bet.player}: +${payout} ({bet_description})")
             else:
                 if bet.penalty > 0:
                     player.subtract_money(bet.penalty)
-                    losers.append(
-                        f"{bet.player}: -${bet.penalty} penalty ({bet.bet_type} with ${bet.token_value} token)")
+                    bet_description = self._get_bet_description(bet)
+                    losers.append(f"{bet.player}: -${bet.penalty} penalty ({bet_description})")
 
         # Give VIP cards to players
         self._distribute_vip_cards()
 
         return winners, losers
+
+    def _get_bet_description(self, bet: Bet) -> str:
+        """Get a description of the bet for display purposes."""
+        if bet.is_prop_bet():
+            prop_bet = next((p for p in PROP_BETS if p["id"] == bet.prop_bet_id), None)
+            if prop_bet:
+                return f"Prop: {prop_bet['description']} with ${bet.token_value} token"
+            return f"Prop bet #{bet.prop_bet_id} with ${bet.token_value} token"
+        else:
+            return f"{bet.bet_type} with ${bet.token_value} token"
+
+    def _is_winning_prop_bet(self, bet: Bet, prop_results: Dict[int, bool]) -> bool:
+        """Check if a prop bet is a winning bet based on manual results."""
+        return prop_results.get(bet.prop_bet_id, False)
 
     def _is_winning_bet(self, bet: Bet, win_horses: List[str], place_horses: List[str], show_horses: List[str]) -> bool:
         """Check if a bet is a winning bet."""
@@ -76,4 +97,4 @@ class GameLogic:
 
     def is_game_complete(self) -> bool:
         """Check if the game is complete."""
-        return self.game_state.current_round > self.game_state.max_rounds
+        return self.game_state.current_race > self.game_state.max_races
