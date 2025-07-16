@@ -10,8 +10,8 @@ setup(
     description="Digital betting board for the Ready Set Bet horse racing game",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="MT",
+    author_email="mt@example.com",
     packages=find_packages(),
     python_requires=">=3.7",
     install_requires=[
