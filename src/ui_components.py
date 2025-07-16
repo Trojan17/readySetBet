@@ -1,15 +1,79 @@
-"""UI components and widgets for the Ready Set Bet application."""
+def _setup_current_bets(self, parent):
+    """Set up the current bets display."""
+    # Modern card container
+    bets_container = tk.Frame(parent, bg=MODERN_COLORS["card"], relief="flat", bd=0)
+    bets_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+    # Title
+    title_frame = tk.Frame(bets_container, bg=MODERN_COLORS["card"])
+    title_frame.pack(fill="x", pady=(15, 10))
+
+    title_label = tk.Label(title_frame, text="CURRENT BETS", font=("Segoe UI", 14, "bold"),
+                           bg=MODERN_COLORS["card"], fg=MODERN_COLORS["text_primary"])
+    """UI components and widgets for the Ready Set Bet application."""
+
 
 import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Dict, List, Callable, Optional
 from .constants import COLORS, SPECIAL_BETS, HORSES, HORSE_COLORS, BETTING_GRID
 
+# Modern color scheme
+MODERN_COLORS = {
+    "primary": "#2563eb",  # Modern blue
+    "secondary": "#64748b",  # Slate gray
+    "success": "#10b981",  # Emerald green
+    "warning": "#f59e0b",  # Amber
+    "danger": "#ef4444",  # Red
+    "surface": "#f8fafc",  # Light gray background
+    "card": "#ffffff",  # White cards
+    "text_primary": "#1e293b",  # Dark text
+    "text_secondary": "#64748b",  # Light text
+    "border": "#e2e8f0",  # Light border
+    "show": {
+        "bg": "#cd7c2f",  # Modern copper
+        "fg": "white",
+        "hover": "#b8691a"
+    },
+    "place": {
+        "bg": "#9ca3af",  # Modern silver
+        "fg": "white",
+        "hover": "#6b7280"
+    },
+    "win": {
+        "bg": "#f59e0b",  # Modern gold
+        "fg": "white",
+        "hover": "#d97706"
+    },
+    "locked": {
+        "bg": "#6b7280",  # Modern gray
+        "fg": "white",
+        "hover": "#4b5563"
+    },
+    "special": {
+        "blue": {"bg": "#3b82f6", "fg": "white", "hover": "#2563eb"},
+        "orange": {"bg": "#f97316", "fg": "white", "hover": "#ea580c"},
+        "red": {"bg": "#ef4444", "fg": "white", "hover": "#dc2626"},
+        "black": {"bg": "#374151", "fg": "white", "hover": "#1f2937"}
+    },
+    "prop": {
+        "bg": "#8b5cf6",  # Modern purple
+        "fg": "white",
+        "hover": "#7c3aed"
+    },
+    "exotic": {
+        "bg": "#f97316",  # Modern orange
+        "fg": "white",
+        "hover": "#ea580c"
+    }
+}
+
 
 class BettingBoard:
     """Handles the betting board UI component."""
 
-    def __init__(self, parent, on_standard_bet: Callable, on_special_bet: Callable, on_prop_bet: Callable, on_exotic_bet: Callable):
+    def __init__(self, parent, on_standard_bet: Callable, on_special_bet: Callable, on_prop_bet: Callable,
+                 on_exotic_bet: Callable):
         self.parent = parent
         self.on_standard_bet = on_standard_bet
         self.on_special_bet = on_special_bet
@@ -23,63 +87,123 @@ class BettingBoard:
 
     def setup_board(self):
         """Set up the betting board UI."""
-        # Main betting board frame
+        # Main betting board frame with modern styling
         board_frame = ttk.Frame(self.parent)
-        board_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        board_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
+        # Configure main grid layout: left side for betting board, right side for current bets
+        board_frame.columnconfigure(0, weight=4)  # Left side gets more space for bigger betting grid
+        board_frame.columnconfigure(1, weight=1)  # Right side for current bets
+        board_frame.rowconfigure(0, weight=1)
+
+        # Left side frame for all betting components
+        left_frame = ttk.Frame(board_frame)
+        left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 20))
+
+        # Right side frame for current bets
+        right_frame = ttk.Frame(board_frame)
+        right_frame.grid(row=0, column=1, sticky="nsew")
+
+        # Setup betting components on the left
+        self._setup_betting_components(left_frame)
+
+        # Setup current bets on the right
+        self._setup_current_bets(right_frame)
+
+    def _setup_betting_components(self, parent):
+        """Set up all betting components (prop bets, special bets, exotic finishes, main grid)."""
         # Prop bets (at the top)
-        self._setup_prop_bets(board_frame)
+        self._setup_prop_bets(parent)
 
         # Special bets
-        self._setup_special_bets(board_frame)
+        self._setup_special_bets(parent)
 
         # Exotic finishes
-        self._setup_exotic_finishes(board_frame)
+        self._setup_exotic_finishes(parent)
 
         # Main betting grid
-        self._setup_main_grid(board_frame)
-
-        # Current bets display
-        self._setup_current_bets(board_frame)
+        self._setup_main_grid(parent)
 
     def _setup_prop_bets(self, parent):
         """Set up the prop bets section."""
-        self.prop_frame = ttk.LabelFrame(parent, text="Prop Bets", padding="5")
-        self.prop_frame.grid(row=0, column=0, columnspan=3, pady=(0, 10), sticky="ew")
+        # Modern card-style frame
+        self.prop_frame = tk.Frame(parent, bg=MODERN_COLORS["card"], relief="flat", bd=0)
+        self.prop_frame.grid(row=0, column=0, columnspan=3, pady=(0, 20), sticky="ew", padx=10)
+
+        # Modern title
+        title_frame = tk.Frame(self.prop_frame, bg=MODERN_COLORS["card"])
+        title_frame.pack(fill="x", pady=(15, 10))
+
+        title_label = tk.Label(title_frame, text="PROP BETS", font=("Segoe UI", 14, "bold"),
+                               bg=MODERN_COLORS["card"], fg=MODERN_COLORS["text_primary"])
+        title_label.pack()
 
         # Will be populated by update_prop_bets method
 
     def update_prop_bets(self, prop_bets: List[Dict]):
         """Update the prop bets display."""
-        # Clear existing prop bet buttons
+        # Clear existing prop bet buttons completely
         for widget in self.prop_frame.winfo_children():
             widget.destroy()
         self.prop_bet_buttons.clear()
 
+        # Recreate title
+        title_frame = tk.Frame(self.prop_frame, bg=MODERN_COLORS["card"])
+        title_frame.pack(fill="x", pady=(15, 10))
+
+        title_label = tk.Label(title_frame, text="PROP BETS", font=("Segoe UI", 14, "bold"),
+                               bg=MODERN_COLORS["card"], fg=MODERN_COLORS["text_primary"])
+        title_label.pack()
+
         if not prop_bets:
-            ttk.Label(self.prop_frame, text="No prop bets for this race").pack(pady=10)
+            no_bets_label = tk.Label(self.prop_frame, text="No prop bets for this race",
+                                     font=("Segoe UI", 10), bg=MODERN_COLORS["card"],
+                                     fg=MODERN_COLORS["text_secondary"])
+            no_bets_label.pack(pady=20)
             return
 
-        # Create prop bet buttons
+        # Container for buttons
+        buttons_frame = tk.Frame(self.prop_frame, bg=MODERN_COLORS["card"])
+        buttons_frame.pack(fill="x", padx=15, pady=(0, 15))
+
+        # Create prop bet buttons with modern styling
         for i, prop_bet in enumerate(prop_bets):
             btn_text = f"{prop_bet['description']}\n{prop_bet['multiplier']}x\n(-${prop_bet['penalty']})"
 
-            btn = tk.Button(self.prop_frame, text=btn_text, font=("Arial", 8, "bold"),
-                            bg=COLORS["prop"]["bg"], fg=COLORS["prop"]["fg"],
-                            activebackground=COLORS["prop"]["bg"], activeforeground=COLORS["prop"]["fg"],
-                            relief="raised", bd=2, wraplength=120, height=4,
+            btn = tk.Button(buttons_frame, text=btn_text, font=("Segoe UI", 9, "bold"),
+                            bg=MODERN_COLORS["prop"]["bg"], fg=MODERN_COLORS["prop"]["fg"],
+                            activebackground=MODERN_COLORS["prop"]["hover"],
+                            activeforeground=MODERN_COLORS["prop"]["fg"],
+                            relief="flat", bd=0, wraplength=140, height=4,
+                            cursor="hand2",
                             command=lambda pb=prop_bet: self.on_prop_bet(pb))
-            btn.grid(row=0, column=i, padx=2, sticky="ew")
-            self.prop_frame.columnconfigure(i, weight=1)
+            btn.grid(row=0, column=i, padx=5, pady=5, sticky="ew")
+            buttons_frame.columnconfigure(i, weight=1)
             self.prop_bet_buttons[prop_bet["id"]] = btn
+
+            # Add subtle shadow effect with border
+            btn.configure(highlightthickness=1, highlightbackground=MODERN_COLORS["border"])
 
     def _setup_special_bets(self, parent):
         """Set up the special bets section."""
-        special_frame = ttk.Frame(parent)
-        special_frame.grid(row=1, column=0, columnspan=3, pady=(0, 10), sticky="ew")
+        # Modern card container
+        special_container = tk.Frame(parent, bg=MODERN_COLORS["card"], relief="flat", bd=0)
+        special_container.grid(row=1, column=0, columnspan=3, pady=(0, 20), sticky="ew", padx=10)
+
+        # Title
+        title_frame = tk.Frame(special_container, bg=MODERN_COLORS["card"])
+        title_frame.pack(fill="x", pady=(15, 10))
+
+        title_label = tk.Label(title_frame, text="SPECIAL BETS", font=("Segoe UI", 14, "bold"),
+                               bg=MODERN_COLORS["card"], fg=MODERN_COLORS["text_primary"])
+        title_label.pack()
+
+        # Buttons container
+        special_frame = tk.Frame(special_container, bg=MODERN_COLORS["card"])
+        special_frame.pack(fill="x", padx=15, pady=(0, 15))
 
         for i, (name, payout, color) in enumerate(SPECIAL_BETS):
-            color_config = COLORS["special"][color]
+            color_config = MODERN_COLORS["special"][color]
 
             # Only color bets have penalty, not the "7 Finishes 5th or Worse"
             if color in ["blue", "orange", "red"]:
@@ -87,50 +211,86 @@ class BettingBoard:
             else:
                 btn_text = f"{name}\n{payout}"
 
-            btn = tk.Button(special_frame, text=btn_text, font=("Arial", 9, "bold"),
+            btn = tk.Button(special_frame, text=btn_text, font=("Segoe UI", 10, "bold"),
                             bg=color_config["bg"], fg=color_config["fg"],
-                            activebackground=color_config["bg"], activeforeground=color_config["fg"],
-                            relief="raised", bd=2,
+                            activebackground=color_config["hover"], activeforeground=color_config["fg"],
+                            relief="flat", bd=0, height=3, cursor="hand2",
                             command=lambda n=name, p=int(payout[:-1]): self.on_special_bet(n, p))
-            btn.grid(row=0, column=i, padx=2, sticky="ew")
+            btn.grid(row=0, column=i, padx=5, pady=5, sticky="ew")
             special_frame.columnconfigure(i, weight=1)
             self.special_bet_buttons[name] = btn
 
+            # Modern border
+            btn.configure(highlightthickness=1, highlightbackground=MODERN_COLORS["border"])
+
     def _setup_exotic_finishes(self, parent):
         """Set up the exotic finishes section."""
-        self.exotic_frame = ttk.LabelFrame(parent, text="Exotic Finishes", padding="5")
-        self.exotic_frame.grid(row=2, column=0, columnspan=3, pady=(0, 10), sticky="ew")
+        # Modern card container
+        self.exotic_container = tk.Frame(parent, bg=MODERN_COLORS["card"], relief="flat", bd=0)
+        self.exotic_container.grid(row=2, column=0, columnspan=3, pady=(0, 20), sticky="ew", padx=10)
+
+        # Title
+        title_frame = tk.Frame(self.exotic_container, bg=MODERN_COLORS["card"])
+        title_frame.pack(fill="x", pady=(15, 10))
+
+        title_label = tk.Label(title_frame, text="EXOTIC FINISHES", font=("Segoe UI", 14, "bold"),
+                               bg=MODERN_COLORS["card"], fg=MODERN_COLORS["text_primary"])
+        title_label.pack()
+
+        # Container for exotic finish buttons
+        self.exotic_frame = tk.Frame(self.exotic_container, bg=MODERN_COLORS["card"])
+        self.exotic_frame.pack(fill="x", padx=15, pady=(0, 15))
 
         # Will be populated by update_exotic_finishes method
 
     def update_exotic_finishes(self, exotic_finishes: List[Dict]):
         """Update the exotic finishes display."""
-        # Clear existing exotic finish buttons
+        # Clear existing exotic finish buttons completely
         for widget in self.exotic_frame.winfo_children():
             widget.destroy()
         self.exotic_finish_buttons.clear()
 
         if not exotic_finishes:
-            ttk.Label(self.exotic_frame, text="No exotic finishes available").pack(pady=10)
+            no_exotic_label = tk.Label(self.exotic_frame, text="No exotic finishes available",
+                                       font=("Segoe UI", 10), bg=MODERN_COLORS["card"],
+                                       fg=MODERN_COLORS["text_secondary"])
+            no_exotic_label.pack(pady=20)
             return
 
-        # Create exotic finish buttons
+        # Create exotic finish buttons with modern styling
         for i, exotic_finish in enumerate(exotic_finishes):
             btn_text = f"{exotic_finish['name']}\n{exotic_finish['description']}\n{exotic_finish['multiplier']}x (-${exotic_finish['penalty']})\nUp to 3 players"
 
-            btn = tk.Button(self.exotic_frame, text=btn_text, font=("Arial", 8, "bold"),
-                            bg=COLORS["exotic"]["bg"], fg=COLORS["exotic"]["fg"],
-                            activebackground=COLORS["exotic"]["bg"], activeforeground=COLORS["exotic"]["fg"],
-                            relief="raised", bd=2, wraplength=180, height=5,
+            btn = tk.Button(self.exotic_frame, text=btn_text, font=("Segoe UI", 9, "bold"),
+                            bg=MODERN_COLORS["exotic"]["bg"], fg=MODERN_COLORS["exotic"]["fg"],
+                            activebackground=MODERN_COLORS["exotic"]["hover"],
+                            activeforeground=MODERN_COLORS["exotic"]["fg"],
+                            relief="flat", bd=0, wraplength=200, height=5, cursor="hand2",
                             command=lambda ef=exotic_finish: self.on_exotic_bet(ef))
-            btn.grid(row=0, column=i, padx=2, sticky="ew")
+            btn.grid(row=0, column=i, padx=5, pady=5, sticky="ew")
             self.exotic_frame.columnconfigure(i, weight=1)
             self.exotic_finish_buttons[exotic_finish["id"]] = btn
 
+            # Modern border
+            btn.configure(highlightthickness=1, highlightbackground=MODERN_COLORS["border"])
+
     def _setup_main_grid(self, parent):
         """Set up the main betting grid."""
-        main_frame = ttk.Frame(parent)
-        main_frame.grid(row=3, column=0, sticky="nsew")
+        # Modern card container for betting grid
+        grid_container = tk.Frame(parent, bg=MODERN_COLORS["card"], relief="flat", bd=0)
+        grid_container.grid(row=3, column=0, sticky="nsew", padx=10, pady=(0, 10))
+
+        # Title
+        title_frame = tk.Frame(grid_container, bg=MODERN_COLORS["card"])
+        title_frame.pack(fill="x", pady=(15, 10))
+
+        title_label = tk.Label(title_frame, text="BETTING BOARD", font=("Segoe UI", 14, "bold"),
+                               bg=MODERN_COLORS["card"], fg=MODERN_COLORS["text_primary"])
+        title_label.pack()
+
+        # Main betting frame
+        main_frame = tk.Frame(grid_container, bg=MODERN_COLORS["card"])
+        main_frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
         # Headers
         self._setup_headers(main_frame)
@@ -145,26 +305,44 @@ class BettingBoard:
     def _setup_headers(self, parent):
         """Set up the column headers."""
         headers = [
-            ("SHOW", COLORS["show"], 0, 2),
-            ("PLACE", COLORS["place"], 2, 2),
-            ("WIN", COLORS["win"], 4, 3)
+            ("SHOW", MODERN_COLORS["show"], 0, 2),
+            ("PLACE", MODERN_COLORS["place"], 2, 2),
+            ("WIN", MODERN_COLORS["win"], 4, 3)
         ]
 
         for text, color_config, col, span in headers:
-            header = tk.Label(parent, text=text, font=("Arial", 14, "bold"),
+            header = tk.Label(parent, text=text, font=("Segoe UI", 16, "bold"),
                               bg=color_config["bg"], fg=color_config["fg"],
-                              relief="raised", bd=2)
-            header.grid(row=0, column=col, columnspan=span, sticky="ew", padx=1, pady=1)
+                              relief="flat", bd=0, height=2)
+            header.grid(row=0, column=col, columnspan=span, sticky="ew", padx=3, pady=3)
+
+            # Modern border
+            header.configure(highlightthickness=1, highlightbackground=MODERN_COLORS["border"])
 
     def _setup_betting_buttons(self, parent):
         """Set up the betting buttons."""
+        # Modern horse colors
+        modern_horse_colors = {
+            "2/3": "#3b82f6",  # Modern blue
+            "4": "#3b82f6",  # Modern blue
+            "5": "#f97316",  # Modern orange
+            "6": "#ef4444",  # Modern red
+            "7": "#374151",  # Modern black
+            "8": "#ef4444",  # Modern red
+            "9": "#f97316",  # Modern orange
+            "10": "#3b82f6",  # Modern blue
+            "11/12": "#3b82f6"  # Modern blue
+        }
+
         for horse_idx, horse in enumerate(HORSES):
             row = horse_idx + 1
 
-            # Horse label
-            horse_label = tk.Label(parent, text=horse, font=("Arial", 10, "bold"),
-                                   bg=HORSE_COLORS.get(horse, "gray"), fg="white")
-            horse_label.grid(row=row, column=7, padx=2, pady=1, sticky="ew")
+            # Modern horse label
+            horse_label = tk.Label(parent, text=horse, font=("Segoe UI", 12, "bold"),
+                                   bg=modern_horse_colors.get(horse, "#6b7280"), fg="white",
+                                   width=8, height=2, relief="flat", bd=0)
+            horse_label.grid(row=row, column=7, padx=3, pady=3, sticky="ew")
+            horse_label.configure(highlightthickness=1, highlightbackground=MODERN_COLORS["border"])
 
             # Betting spots
             horse_bets = BETTING_GRID[horse_idx]
@@ -172,17 +350,20 @@ class BettingBoard:
 
             for col_idx, (multiplier, penalty) in enumerate(horse_bets):
                 bet_type = "show" if col_idx < 2 else "place" if col_idx < 4 else "win"
-                color_config = COLORS[bet_type]
+                color_config = MODERN_COLORS[bet_type]
 
                 btn_text = f"{multiplier}x\n(-${penalty})" if penalty > 0 else f"{multiplier}x\n "
 
-                btn = tk.Button(parent, text=btn_text, font=("Arial", 8, "bold"),
+                btn = tk.Button(parent, text=btn_text, font=("Segoe UI", 11, "bold"),
                                 bg=color_config["bg"], fg=color_config["fg"],
-                                activebackground=color_config["bg"], activeforeground=color_config["fg"],
-                                relief="raised", bd=2,
+                                activebackground=color_config["hover"], activeforeground=color_config["fg"],
+                                relief="flat", bd=0, width=6, height=2, cursor="hand2",
                                 command=lambda h=horse, t=bet_type, m=multiplier, p=penalty, r=row, c=col_idx:
                                 self.on_standard_bet(h, t, m, p, r, c))
-                btn.grid(row=row, column=col_idx, padx=1, pady=1, sticky="ew")
+                btn.grid(row=row, column=col_idx, padx=3, pady=3, sticky="ew")
+
+                # Modern border
+                btn.configure(highlightthickness=1, highlightbackground=MODERN_COLORS["border"])
 
                 if bet_type not in self.bet_buttons[horse]:
                     self.bet_buttons[horse][bet_type] = []
@@ -196,40 +377,75 @@ class BettingBoard:
 
     def _setup_current_bets(self, parent):
         """Set up the current bets display."""
-        bets_frame = ttk.LabelFrame(parent, text="Current Bets", padding="5")
-        bets_frame.grid(row=4, column=0, pady=(10, 0), sticky="ew")
+        # Modern card container
+        bets_container = tk.Frame(parent, bg=MODERN_COLORS["card"], relief="flat", bd=0)
+        bets_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Treeview for bets
-        self.bets_tree = ttk.Treeview(bets_frame,
+        # Title
+        title_frame = tk.Frame(bets_container, bg=MODERN_COLORS["card"])
+        title_frame.pack(fill="x", pady=(15, 10))
+
+        title_label = tk.Label(title_frame, text="CURRENT BETS", font=("Segoe UI", 14, "bold"),
+                               bg=MODERN_COLORS["card"], fg=MODERN_COLORS["text_primary"])
+        title_label.pack()
+
+        # Treeview container
+        tree_frame = tk.Frame(bets_container, bg=MODERN_COLORS["card"])
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 10))
+
+        # Modern Treeview for bets
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure("Modern.Treeview",
+                        background=MODERN_COLORS["surface"],
+                        foreground=MODERN_COLORS["text_primary"],
+                        fieldbackground=MODERN_COLORS["surface"],
+                        borderwidth=0,
+                        relief="flat")
+        style.configure("Modern.Treeview.Heading",
+                        background=MODERN_COLORS["secondary"],
+                        foreground="white",
+                        borderwidth=0,
+                        relief="flat")
+
+        self.bets_tree = ttk.Treeview(tree_frame,
                                       columns=("Player", "Horse", "Type", "Token", "Win", "Lose", "Remove"),
-                                      show="headings", height=6)
+                                      show="headings", height=15, style="Modern.Treeview")
 
-        # Configure columns
+        # Configure columns with modern styling
         columns = [
-            ("Player", 60), ("Horse", 45), ("Type", 65), ("Token", 45),
-            ("Win", 50), ("Lose", 50), ("Remove", 55)
+            ("Player", 80), ("Horse", 60), ("Type", 80), ("Token", 60),
+            ("Win", 60), ("Lose", 60), ("Remove", 70)
         ]
 
         for col, width in columns:
             self.bets_tree.heading(col, text=col)
             self.bets_tree.column(col, width=width)
 
-        # Scrollbar
-        bets_scrollbar = ttk.Scrollbar(bets_frame, orient=tk.VERTICAL, command=self.bets_tree.yview)
+        # Modern scrollbar
+        bets_scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=self.bets_tree.yview)
         self.bets_tree.configure(yscrollcommand=bets_scrollbar.set)
 
         self.bets_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         bets_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Buttons
-        button_frame = ttk.Frame(bets_frame)
-        button_frame.pack(pady=(5, 0), fill="x")
+        # Modern buttons
+        button_frame = tk.Frame(bets_container, bg=MODERN_COLORS["card"])
+        button_frame.pack(pady=(5, 15), fill="x", padx=15)
 
-        self.remove_btn = ttk.Button(button_frame, text="Remove Selected Bet")
-        self.remove_btn.pack(side=tk.LEFT, padx=(0, 5))
+        self.remove_btn = tk.Button(button_frame, text="Remove Selected Bet",
+                                    font=("Segoe UI", 10, "bold"),
+                                    bg=MODERN_COLORS["danger"], fg="white",
+                                    activebackground="#dc2626", activeforeground="white",
+                                    relief="flat", bd=0, height=2, cursor="hand2")
+        self.remove_btn.pack(side=tk.TOP, pady=(0, 5), fill="x")
 
-        self.clear_btn = ttk.Button(button_frame, text="Clear All Bets")
-        self.clear_btn.pack(side=tk.LEFT)
+        self.clear_btn = tk.Button(button_frame, text="Clear All Bets",
+                                   font=("Segoe UI", 10, "bold"),
+                                   bg=MODERN_COLORS["secondary"], fg="white",
+                                   activebackground="#475569", activeforeground="white",
+                                   relief="flat", bd=0, height=2, cursor="hand2")
+        self.clear_btn.pack(side=tk.TOP, fill="x")
 
     def update_button_appearance(self, horse: str, bet_type: str, row: int, col: int, player: str):
         """Update button appearance to show it's locked."""
@@ -242,10 +458,10 @@ class BettingBoard:
                     new_text = f"{multiplier}x\n{player[:6]}"
                     button.configure(
                         text=new_text,
-                        bg=COLORS["locked"]["bg"],
-                        fg=COLORS["locked"]["fg"],
-                        activebackground=COLORS["locked"]["bg"],
-                        activeforeground=COLORS["locked"]["fg"],
+                        bg=MODERN_COLORS["locked"]["bg"],
+                        fg=MODERN_COLORS["locked"]["fg"],
+                        activebackground=MODERN_COLORS["locked"]["hover"],
+                        activeforeground=MODERN_COLORS["locked"]["fg"],
                         state="disabled"
                     )
                     break
@@ -263,10 +479,10 @@ class BettingBoard:
 
             button.configure(
                 text=new_text,
-                bg=COLORS["locked"]["bg"],
-                fg=COLORS["locked"]["fg"],
-                activebackground=COLORS["locked"]["bg"],
-                activeforeground=COLORS["locked"]["fg"],
+                bg=MODERN_COLORS["locked"]["bg"],
+                fg=MODERN_COLORS["locked"]["fg"],
+                activebackground=MODERN_COLORS["locked"]["hover"],
+                activeforeground=MODERN_COLORS["locked"]["fg"],
                 state="disabled"
             )
 
@@ -283,10 +499,10 @@ class BettingBoard:
 
             button.configure(
                 text=new_text,
-                bg=COLORS["locked"]["bg"],
-                fg=COLORS["locked"]["fg"],
-                activebackground=COLORS["locked"]["bg"],
-                activeforeground=COLORS["locked"]["fg"],
+                bg=MODERN_COLORS["locked"]["bg"],
+                fg=MODERN_COLORS["locked"]["fg"],
+                activebackground=MODERN_COLORS["locked"]["hover"],
+                activeforeground=MODERN_COLORS["locked"]["fg"],
                 state="disabled"
             )
 
@@ -309,10 +525,10 @@ class BettingBoard:
             if len(players) >= 3:
                 button.configure(
                     text=new_text,
-                    bg=COLORS["locked"]["bg"],
-                    fg=COLORS["locked"]["fg"],
-                    activebackground=COLORS["locked"]["bg"],
-                    activeforeground=COLORS["locked"]["fg"],
+                    bg=MODERN_COLORS["locked"]["bg"],
+                    fg=MODERN_COLORS["locked"]["fg"],
+                    activebackground=MODERN_COLORS["locked"]["hover"],
+                    activeforeground=MODERN_COLORS["locked"]["fg"],
                     state="disabled"
                 )
             else:
@@ -327,14 +543,14 @@ class BettingBoard:
                     multiplier = btn_info["multiplier"]
                     penalty = btn_info["penalty"]
 
-                    color_config = COLORS[bet_type]
+                    color_config = MODERN_COLORS[bet_type]
                     btn_text = f"{multiplier}x\n(-${penalty})" if penalty > 0 else f"{multiplier}x\n "
 
                     button.configure(
                         text=btn_text,
                         bg=color_config["bg"],
                         fg=color_config["fg"],
-                        activebackground=color_config["bg"],
+                        activebackground=color_config["hover"],
                         activeforeground=color_config["fg"],
                         state="normal"
                     )
@@ -348,7 +564,7 @@ class BettingBoard:
             # Find the original bet info
             for name, payout, color in SPECIAL_BETS:
                 if name == bet_name:
-                    color_config = COLORS["special"][color]
+                    color_config = MODERN_COLORS["special"][color]
 
                     if color in ["blue", "orange", "red"]:
                         btn_text = f"{name}\n{payout}\n(-$1)"
@@ -359,7 +575,7 @@ class BettingBoard:
                         text=btn_text,
                         bg=color_config["bg"],
                         fg=color_config["fg"],
-                        activebackground=color_config["bg"],
+                        activebackground=color_config["hover"],
                         activeforeground=color_config["fg"],
                         state="normal"
                     )
@@ -373,10 +589,10 @@ class BettingBoard:
 
             button.configure(
                 text=btn_text,
-                bg=COLORS["prop"]["bg"],
-                fg=COLORS["prop"]["fg"],
-                activebackground=COLORS["prop"]["bg"],
-                activeforeground=COLORS["prop"]["fg"],
+                bg=MODERN_COLORS["prop"]["bg"],
+                fg=MODERN_COLORS["prop"]["fg"],
+                activebackground=MODERN_COLORS["prop"]["hover"],
+                activeforeground=MODERN_COLORS["prop"]["fg"],
                 state="normal"
             )
 
@@ -388,10 +604,10 @@ class BettingBoard:
 
             button.configure(
                 text=btn_text,
-                bg=COLORS["exotic"]["bg"],
-                fg=COLORS["exotic"]["fg"],
-                activebackground=COLORS["exotic"]["bg"],
-                activeforeground=COLORS["exotic"]["fg"],
+                bg=MODERN_COLORS["exotic"]["bg"],
+                fg=MODERN_COLORS["exotic"]["fg"],
+                activebackground=MODERN_COLORS["exotic"]["hover"],
+                activeforeground=MODERN_COLORS["exotic"]["fg"],
                 state="normal"
             )
 
@@ -404,7 +620,7 @@ class BettingBoard:
                     button = btn_info["button"]
                     if enabled:
                         # Only enable if not already locked
-                        if button.cget("bg") != COLORS["locked"]["bg"]:
+                        if button.cget("bg") != MODERN_COLORS["locked"]["bg"]:
                             button.configure(state="normal")
                     else:
                         button.configure(state="disabled")
@@ -413,7 +629,7 @@ class BettingBoard:
         for button in self.special_bet_buttons.values():
             if enabled:
                 # Only enable if not already locked
-                if button.cget("bg") != COLORS["locked"]["bg"]:
+                if button.cget("bg") != MODERN_COLORS["locked"]["bg"]:
                     button.configure(state="normal")
             else:
                 button.configure(state="disabled")
@@ -422,7 +638,7 @@ class BettingBoard:
         for button in self.prop_bet_buttons.values():
             if enabled:
                 # Only enable if not already locked
-                if button.cget("bg") != COLORS["locked"]["bg"]:
+                if button.cget("bg") != MODERN_COLORS["locked"]["bg"]:
                     button.configure(state="normal")
             else:
                 button.configure(state="disabled")
@@ -431,7 +647,7 @@ class BettingBoard:
         for button in self.exotic_finish_buttons.values():
             if enabled:
                 # Only enable if not already fully locked (3 players)
-                if button.cget("bg") != COLORS["locked"]["bg"]:
+                if button.cget("bg") != MODERN_COLORS["locked"]["bg"]:
                     button.configure(state="normal")
             else:
                 button.configure(state="disabled")
