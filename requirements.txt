@@ -1,0 +1,6 @@
+# requirements.txt
+"""
+# Ready Set Bet Requirements
+# No external dependencies required - uses only Python standard library
+# Python 3.7+ recommended for dataclasses support
+"""
