@@ -3,8 +3,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
-from typing import Optional, Dict, List
-
+from .icon_utils import icon_manager
 from .models import GameState, Bet
 from .game_logic import GameLogic
 from .modern_ui_components import ModernBettingBoard
@@ -39,11 +38,11 @@ RACING_COLORS = {
     "blue_bet": "#3b82f6",
     "orange_bet": "#f97316",
     "red_bet": "#ef4444",
-    "black_bet": "#374151",
+    "black_bet": "#6b7280",
 
     # Prop and exotic
     "prop": "#8b5cf6",     # Purple
-    "exotic": "#f59e0b",   # Orange
+    "exotic": "#0891b2",   # Orange
 
     # Button states
     "disabled": "#4b5563",  # Dark gray for disabled buttons
@@ -103,14 +102,35 @@ class ModernReadySetBetApp:
         header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
         header_frame.grid_columnconfigure(1, weight=1)
 
-        # Title
+        # Title section with icon
+        title_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_frame.grid(row=0, column=0, padx=20, pady=20, sticky="w")
+
+        # Try to add icon next to title with better sizing
+        # First, let's check the original image size
+        image_info = icon_manager.get_image_info()
+        if image_info:
+            print(f"Original icon size: {image_info['width']}x{image_info['height']}")
+            print(f"Aspect ratio: {image_info['aspect_ratio']:.2f}")
+
+        # Create icon with aspect ratio maintained
+        # Adjust the target height based on your header size (let's try 40px height)
+        icon_image = icon_manager.create_ctk_image((60, 40), maintain_aspect=True)
+        if icon_image:
+            icon_label = ctk.CTkLabel(
+                title_frame,
+                image=icon_image,
+                text=""
+            )
+            icon_label.grid(row=0, column=0, padx=(0, 15), pady=5)
+
         title_label = ctk.CTkLabel(
-            header_frame,
-            text="🏇 Ready Set Bet",
+            title_frame,
+            text="Ready Set Bet",  # Removed emoji since we have the icon now
             font=ctk.CTkFont(size=24, weight="bold"),
             text_color=RACING_COLORS["win"]
         )
-        title_label.grid(row=0, column=0, padx=20, pady=20, sticky="w")
+        title_label.grid(row=0, column=1, pady=5)
 
         # Race info
         self.race_label = ctk.CTkLabel(

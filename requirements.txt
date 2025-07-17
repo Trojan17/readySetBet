@@ -1,6 +1,12 @@
 # requirements.txt
-"""
 # Ready Set Bet Requirements
-# No external dependencies required - uses only Python standard library
+# Updated to include image processing for icons
+
+# For image processing and icon handling
+Pillow>=9.0.0
+
+# For modern UI (if using CustomTkinter)
+customtkinter>=5.0.0
+
 # Python 3.7+ recommended for dataclasses support
-"""
+# No other external dependencies required - uses mostly Python standard library

@@ -4,27 +4,27 @@ import customtkinter as ctk
 from typing import Dict, List, Callable, Optional
 from .constants import HORSES, BETTING_GRID, SPECIAL_BETS
 
-# Modern color scheme with excellent contrast and readability
+# Modern color scheme with better contrast
 BETTING_COLORS = {
-    "show": "#d97706",     # Vibrant amber/bronze
-    "place": "#94a3b8",    # Light slate gray
-    "win": "#facc15",      # Bright yellow/gold
-    "locked": "#64748b",   # Medium slate
-    "hover_show": "#c2620c",
-    "hover_place": "#7c8fa3",
-    "hover_win": "#eab308",
+    "show": "#cd7f32",  # Bronze
+    "place": "#c0c0c0",  # Silver
+    "win": "#ffd700",  # Gold
+    "locked": "#6b7280",  # Gray
+    "hover_show": "#b8691a",
+    "hover_place": "#a8a8a8",
+    "hover_win": "#e6c200",
 
-    "blue_bet": "#1d4ed8",     # Deep blue
-    "orange_bet": "#ea580c",   # Vibrant orange
-    "red_bet": "#dc2626",      # Vibrant red
-    "black_bet": "#374151",    # Much darker gray (was invisible!)
+    "blue_bet": "#2563eb",    # More vibrant blue
+    "orange_bet": "#ea580c",  # More vibrant orange
+    "red_bet": "#dc2626",     # More vibrant red
+    "black_bet": "#6b7280",   # Dark gray
 
-    "prop": "#7c3aed",      # Purple
-    "exotic": "#ea580c",    # Orange
-    "surface": "#0f172a",   # Very dark blue-gray
-    "card": "#1e293b",      # Dark blue-gray
-    "text": "#f8fafc",      # Off-white for better readability
-    "text_dark": "#0f172a"  # Very dark for light backgrounds
+    "prop": "#7c3aed",     # More vibrant purple
+    "exotic": "#0891b2",   # More vibrant orange
+    "surface": "#111827",
+    "card": "#1f2937",
+    "text": "#ffffff",
+    "text_dark": "#000000"
 }
 
 
@@ -72,11 +72,11 @@ class ModernBettingBoard:
         self.prop_frame = ctk.CTkFrame(self.main_container, fg_color=BETTING_COLORS["card"])
         self.prop_frame.grid(row=0, column=0, sticky="ew", pady=(0, 15))
 
-        # Title with modern font
+        # Title
         prop_title = ctk.CTkLabel(
             self.prop_frame,
             text="🎯 PROPOSITION BETS",
-            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            font=ctk.CTkFont(size=18, weight="bold"),
             text_color=BETTING_COLORS["prop"]
         )
         prop_title.pack(pady=(15, 10))
@@ -96,7 +96,7 @@ class ModernBettingBoard:
             no_props = ctk.CTkLabel(
                 self.prop_buttons_frame,
                 text="No proposition bets available",
-                font=ctk.CTkFont(family="Segoe UI", size=14),
+                font=ctk.CTkFont(size=14),
                 text_color="#9ca3af"
             )
             no_props.pack(pady=20)
@@ -112,12 +112,11 @@ class ModernBettingBoard:
             btn = ctk.CTkButton(
                 self.prop_buttons_frame,
                 text=btn_text,
-                font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+                font=ctk.CTkFont(size=11, weight="bold"),
                 fg_color=BETTING_COLORS["prop"],
                 hover_color="#6d28d9",
-                text_color=BETTING_COLORS["text"],
-                height=95,
-                corner_radius=10,
+                text_color="white",
+                height=90,
                 command=lambda pb=prop_bet: self.on_prop_bet(pb)
             )
             btn.grid(row=0, column=i, padx=5, pady=5, sticky="ew")
@@ -128,11 +127,11 @@ class ModernBettingBoard:
         special_frame = ctk.CTkFrame(self.main_container, fg_color=BETTING_COLORS["card"])
         special_frame.grid(row=1, column=0, sticky="ew", pady=(0, 15))
 
-        # Title with modern font
+        # Title
         special_title = ctk.CTkLabel(
             special_frame,
             text="👑 SPECIAL RACING BETS",
-            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            font=ctk.CTkFont(size=18, weight="bold"),
             text_color="#f59e0b"
         )
         special_title.pack(pady=(15, 10))
@@ -159,11 +158,10 @@ class ModernBettingBoard:
             btn = ctk.CTkButton(
                 special_buttons_frame,
                 text=btn_text,
-                font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+                font=ctk.CTkFont(size=12, weight="bold"),
                 fg_color=color_map[color],
-                text_color=BETTING_COLORS["text"],
-                height=85,
-                corner_radius=10,
+                text_color="white",
+                height=80,
                 command=lambda n=name, p=int(payout[:-1]): self.on_special_bet(n, p)
             )
             btn.grid(row=0, column=i, padx=5, pady=5, sticky="ew")
@@ -174,11 +172,11 @@ class ModernBettingBoard:
         self.exotic_container = ctk.CTkFrame(self.main_container, fg_color=BETTING_COLORS["card"])
         self.exotic_container.grid(row=2, column=0, sticky="ew", pady=(0, 15))
 
-        # Title with modern font
+        # Title
         exotic_title = ctk.CTkLabel(
             self.exotic_container,
             text="⭐ EXOTIC FINISH BETS",
-            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            font=ctk.CTkFont(size=18, weight="bold"),
             text_color=BETTING_COLORS["exotic"]
         )
         exotic_title.pack(pady=(15, 10))
@@ -198,7 +196,7 @@ class ModernBettingBoard:
             no_exotic = ctk.CTkLabel(
                 self.exotic_frame,
                 text="No exotic finish bets available",
-                font=ctk.CTkFont(family="Segoe UI", size=14),
+                font=ctk.CTkFont(size=14),
                 text_color="#9ca3af"
             )
             no_exotic.pack(pady=20)
@@ -211,17 +209,16 @@ class ModernBettingBoard:
 
         # Create exotic finish buttons
         for i, exotic_finish in enumerate(exotic_finishes):
-            btn_text = f"🏆 {exotic_finish['name']}\n{exotic_finish['description'][:30]}...\n💰 {exotic_finish['multiplier']}x | 💸 -${exotic_finish['penalty']} | 🏇 Up to 3"
+            # CHANGE: Show FULL description without cutting it off
+            btn_text = f"{exotic_finish['name']}\n{exotic_finish['description']}\n{exotic_finish['multiplier']}x | -${exotic_finish['penalty']}\nMax 3 players"
 
             btn = ctk.CTkButton(
                 self.exotic_frame,
                 text=btn_text,
-                font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+                font=ctk.CTkFont(size=9, weight="bold"),  # Smaller font to fit more text
                 fg_color=BETTING_COLORS["exotic"],
-                hover_color="#c2410c",
-                text_color=BETTING_COLORS["text"],
-                height=105,
-                corner_radius=10,
+                hover_color="#0e7490",
+                height=130,  # Taller to accommodate full text
                 command=lambda ef=exotic_finish: self.on_exotic_bet(ef)
             )
             btn.grid(row=0, column=i, padx=5, pady=5, sticky="ew")
@@ -232,12 +229,12 @@ class ModernBettingBoard:
         grid_container = ctk.CTkFrame(self.main_container, fg_color=BETTING_COLORS["card"])
         grid_container.grid(row=3, column=0, sticky="ew", pady=(0, 15))
 
-        # Title with modern font
+        # Title
         grid_title = ctk.CTkLabel(
             grid_container,
             text="🏁 RACING ODDS BOARD",
-            font=ctk.CTkFont(family="Segoe UI", size=22, weight="bold"),
-            text_color="#facc15"
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color="#ffd700"
         )
         grid_title.pack(pady=(15, 10))
 
@@ -267,11 +264,11 @@ class ModernBettingBoard:
             header = ctk.CTkLabel(
                 self.grid_frame,
                 text=text,
-                font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+                font=ctk.CTkFont(size=16, weight="bold"),
                 fg_color=color,
                 text_color=BETTING_COLORS["text_dark"] if color == BETTING_COLORS["win"] else BETTING_COLORS["text"],
-                height=50,
-                corner_radius=10
+                height=45,
+                corner_radius=8
             )
             header.grid(row=0, column=col, columnspan=span, padx=2, pady=2, sticky="ew")
 
@@ -280,15 +277,15 @@ class ModernBettingBoard:
         for horse_idx, horse in enumerate(HORSES):
             row = horse_idx + 1
 
-            # Horse label with modern font
+            # Horse label
             horse_label = ctk.CTkLabel(
                 self.grid_frame,
                 text=f"🐎 {horse}",
-                font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+                font=ctk.CTkFont(size=12, weight="bold"),
                 fg_color="#1d4ed8",
-                text_color=BETTING_COLORS["text"],
-                height=45,
-                corner_radius=10
+                text_color="white",
+                height=40,
+                corner_radius=8
             )
             horse_label.grid(row=row, column=7, padx=2, pady=2, sticky="ew")
 
@@ -313,12 +310,12 @@ class ModernBettingBoard:
                 btn = ctk.CTkButton(
                     self.grid_frame,
                     text=btn_text,
-                    font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+                    font=ctk.CTkFont(size=12, weight="bold"),
                     fg_color=color,
                     hover_color=hover_color,
                     text_color=text_color,
-                    height=45,
-                    corner_radius=10,
+                    height=40,
+                    corner_radius=8,
                     command=lambda h=horse, t=bet_type, m=multiplier, p=penalty, r=row, c=col_idx:
                     self.on_standard_bet(h, t, m, p, r, c)
                 )
@@ -340,22 +337,22 @@ class ModernBettingBoard:
         bets_container = ctk.CTkFrame(self.main_container, fg_color=BETTING_COLORS["card"])
         bets_container.grid(row=4, column=0, sticky="ew", pady=(0, 15))
 
-        # Title with modern font
+        # Title
         bets_title = ctk.CTkLabel(
             bets_container,
             text="🎫 ACTIVE BETS",
-            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            font=ctk.CTkFont(size=18, weight="bold"),
             text_color="#10b981"
         )
         bets_title.pack(pady=(15, 10))
 
-        # Bets display area with modern font
+        # Bets display area
         self.bets_text = ctk.CTkTextbox(
             bets_container,
-            font=ctk.CTkFont(family="Consolas", size=12),
+            font=ctk.CTkFont(size=12),
             fg_color=BETTING_COLORS["surface"],
-            text_color=BETTING_COLORS["text"],
-            height=160
+            text_color="white",
+            height=150
         )
         self.bets_text.pack(fill="x", padx=15, pady=(0, 10))
 
@@ -367,24 +364,22 @@ class ModernBettingBoard:
         self.remove_btn = ctk.CTkButton(
             button_frame,
             text="🗑️ Remove Selected",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            font=ctk.CTkFont(size=13, weight="bold"),
             fg_color="#ef4444",
             hover_color="#dc2626",
-            text_color=BETTING_COLORS["text"],
-            height=45,
-            corner_radius=10
+            text_color="white",
+            height=40
         )
         self.remove_btn.grid(row=0, column=0, padx=(0, 5), sticky="ew")
 
         self.clear_btn = ctk.CTkButton(
             button_frame,
             text="🧹 Clear All Bets",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            fg_color="#64748b",
-            hover_color="#475569",
-            text_color=BETTING_COLORS["text"],
-            height=45,
-            corner_radius=10
+            font=ctk.CTkFont(size=13, weight="bold"),
+            fg_color="#6b7280",
+            hover_color="#4b5563",
+            text_color="white",
+            height=40
         )
         self.clear_btn.grid(row=0, column=1, padx=(5, 0), sticky="ew")
 
@@ -425,7 +420,7 @@ class ModernBettingBoard:
                         text=new_text,
                         fg_color=BETTING_COLORS["locked"],
                         hover_color=BETTING_COLORS["locked"],
-                        text_color=BETTING_COLORS["text"],
+                        text_color="white",
                         state="disabled"
                     )
                     break
@@ -445,7 +440,7 @@ class ModernBettingBoard:
                 text=new_text,
                 fg_color=BETTING_COLORS["locked"],
                 hover_color=BETTING_COLORS["locked"],
-                text_color=BETTING_COLORS["text"],
+                text_color="white",
                 state="disabled"
             )
 
@@ -464,7 +459,7 @@ class ModernBettingBoard:
                 text=new_text,
                 fg_color=BETTING_COLORS["locked"],
                 hover_color=BETTING_COLORS["locked"],
-                text_color=BETTING_COLORS["text"],
+                text_color="white",
                 state="disabled"
             )
 
@@ -489,11 +484,11 @@ class ModernBettingBoard:
                     text=new_text,
                     fg_color=BETTING_COLORS["locked"],
                     hover_color=BETTING_COLORS["locked"],
-                    text_color=BETTING_COLORS["text"],
+                    text_color="white",
                     state="disabled"
                 )
             else:
-                button.configure(text=new_text, text_color=BETTING_COLORS["text"])
+                button.configure(text=new_text, text_color="white")
 
     def set_betting_enabled(self, enabled: bool):
         """Enable or disable all betting buttons."""
@@ -598,7 +593,7 @@ class ModernBettingBoard:
                     button.configure(
                         text=btn_text,
                         fg_color=color_map[color],
-                        text_color=BETTING_COLORS["text"],
+                        text_color="white",
                         state="normal"
                     )
                     break
@@ -619,7 +614,7 @@ class ModernBettingBoard:
                 text=btn_text,
                 fg_color=BETTING_COLORS["prop"],
                 hover_color="#6d28d9",
-                text_color=BETTING_COLORS["text"],
+                text_color="white",
                 state="normal"
             )
 
@@ -633,12 +628,12 @@ class ModernBettingBoard:
         """Reset exotic finish button to original appearance."""
         if exotic_finish_id in self.exotic_finish_buttons:
             button = self.exotic_finish_buttons[exotic_finish_id]
-            btn_text = f"🏆 {exotic_finish['name']}\n{exotic_finish['description'][:30]}...\n💰 {exotic_finish['multiplier']}x | 💸 -${exotic_finish['penalty']} | 🏇 Up to 3"
+            # CHANGE: Show FULL description without cutting it off
+            btn_text = f"{exotic_finish['name']}\n{exotic_finish['description']}\n{exotic_finish['multiplier']}x | -${exotic_finish['penalty']}\nMax 3 players"
 
             button.configure(
                 text=btn_text,
                 fg_color=BETTING_COLORS["exotic"],
-                hover_color="#c2410c",
-                text_color=BETTING_COLORS["text"],
+                hover_color="#0e7490",
                 state="normal"
             )

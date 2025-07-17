@@ -1,5 +1,14 @@
 """Constants and configuration for the Ready Set Bet application."""
 
+from pathlib import Path
+
+# Get the project root directory
+PROJECT_ROOT = Path(__file__).parent.parent
+ASSETS_DIR = PROJECT_ROOT / "assets"
+
+# Icon paths
+GAME_ICON = ASSETS_DIR / "icon.png"
+
 # Game configuration
 MAX_RACES = 4
 STARTING_MONEY = 0
@@ -129,7 +138,7 @@ COLORS = {
         "fg": "white"
     },
     "exotic": {
-        "bg": "#E65100",  # Deep Orange
+        "bg": "#0891b2",  # Deep Orange
         "fg": "white"
     }
 }
