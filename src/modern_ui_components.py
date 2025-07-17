@@ -1,7 +1,7 @@
 """Modern UI components for the Ready Set Bet application using CustomTkinter."""
 
 import customtkinter as ctk
-from typing import Dict, List, Callable, Optional
+from typing import Dict, List, Callable
 from .constants import HORSES, BETTING_GRID, SPECIAL_BETS, HORSE_COLORS
 
 # Modern color scheme with better contrast
