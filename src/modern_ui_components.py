@@ -112,7 +112,7 @@ class ModernBettingBoard:
             btn = ctk.CTkButton(
                 self.prop_buttons_frame,
                 text=btn_text,
-                font=ctk.CTkFont(size=11, weight="bold"),
+                font=ctk.CTkFont(size=15, weight="bold"),
                 fg_color=BETTING_COLORS["prop"],
                 hover_color="#6d28d9",
                 text_color="white",
@@ -158,7 +158,7 @@ class ModernBettingBoard:
             btn = ctk.CTkButton(
                 special_buttons_frame,
                 text=btn_text,
-                font=ctk.CTkFont(size=12, weight="bold"),
+                font=ctk.CTkFont(size=15, weight="bold"),
                 fg_color=color_map[color],
                 text_color="white",
                 height=80,
@@ -215,7 +215,7 @@ class ModernBettingBoard:
             btn = ctk.CTkButton(
                 self.exotic_frame,
                 text=btn_text,
-                font=ctk.CTkFont(size=9, weight="bold"),  # Smaller font to fit more text
+                font=ctk.CTkFont(size=13, weight="bold"),  # Smaller font to fit more text
                 fg_color=BETTING_COLORS["exotic"],
                 hover_color="#0e7490",
                 height=130,  # Taller to accommodate full text
@@ -283,7 +283,7 @@ class ModernBettingBoard:
             horse_label = ctk.CTkLabel(
                 self.grid_frame,
                 text=f"🐎 {horse}",
-                font=ctk.CTkFont(size=11, weight="bold"),
+                font=ctk.CTkFont(size=13, weight="bold"),
                 fg_color=horse_color,  # Use color from constants
                 text_color="white",
                 height=35,
@@ -312,7 +312,7 @@ class ModernBettingBoard:
                 btn = ctk.CTkButton(
                     self.grid_frame,
                     text=btn_text,
-                    font=ctk.CTkFont(size=10, weight="bold"),
+                    font=ctk.CTkFont(size=12, weight="bold"),
                     fg_color=color,
                     hover_color=hover_color,
                     text_color=text_color,
