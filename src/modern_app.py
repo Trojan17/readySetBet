@@ -102,20 +102,12 @@ class ModernReadySetBetApp:
         header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
         header_frame.grid_columnconfigure(1, weight=1)
 
-        # Title section with icon
+        # Title section with icon and logo
         title_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
         title_frame.grid(row=0, column=0, padx=20, pady=20, sticky="w")
 
-        # Try to add icon next to title with better sizing
-        # First, let's check the original image size
-        image_info = icon_manager.get_image_info()
-        if image_info:
-            print(f"Original icon size: {image_info['width']}x{image_info['height']}")
-            print(f"Aspect ratio: {image_info['aspect_ratio']:.2f}")
-
-        # Create icon with aspect ratio maintained
-        # Adjust the target height based on your header size (let's try 40px height)
-        icon_image = icon_manager.create_ctk_image((60, 40), maintain_aspect=True)
+        # Game icon (Pepe)
+        icon_image = icon_manager.create_ctk_image((40, 40), maintain_aspect=True)
         if icon_image:
             icon_label = ctk.CTkLabel(
                 title_frame,
@@ -124,13 +116,24 @@ class ModernReadySetBetApp:
             )
             icon_label.grid(row=0, column=0, padx=(0, 15), pady=5)
 
-        title_label = ctk.CTkLabel(
-            title_frame,
-            text="Ready Set Bet",  # Removed emoji since we have the icon now
-            font=ctk.CTkFont(size=24, weight="bold"),
-            text_color=RACING_COLORS["win"]
-        )
-        title_label.grid(row=0, column=1, pady=5)
+        # Game logo (Ready Set Bet text image)
+        logo_image = icon_manager.create_logo_image(target_height=35)  # Adjust height as needed
+        if logo_image:
+            logo_label = ctk.CTkLabel(
+                title_frame,
+                image=logo_image,
+                text=""
+            )
+            logo_label.grid(row=0, column=1, pady=5)
+        else:
+            # Fallback to text if logo image not found
+            title_label = ctk.CTkLabel(
+                title_frame,
+                text="Ready Set Bet",
+                font=ctk.CTkFont(size=24, weight="bold"),
+                text_color=RACING_COLORS["win"]
+            )
+            title_label.grid(row=0, column=1, pady=5)
 
         # Race info
         self.race_label = ctk.CTkLabel(

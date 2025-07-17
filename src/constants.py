@@ -8,7 +8,7 @@ ASSETS_DIR = PROJECT_ROOT / "assets"
 
 # Icon paths
 GAME_ICON = ASSETS_DIR / "icon.png"
-
+GAME_LOGO = ASSETS_DIR / "logo.png"
 # Game configuration
 MAX_RACES = 4
 STARTING_MONEY = 0

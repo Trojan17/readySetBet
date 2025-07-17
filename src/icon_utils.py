@@ -2,11 +2,9 @@
 
 import tkinter as tk
 from PIL import Image, ImageTk
-from pathlib import Path
 from typing import Optional, Tuple
 import customtkinter as ctk
-from .constants import GAME_ICON
-
+from .constants import GAME_ICON, GAME_LOGO
 
 class IconManager:
     """Manages application icons and images."""
@@ -171,6 +169,60 @@ class IconManager:
             print(f"Failed to get image info: {e}")
             return None
 
+    def create_logo_image(self, target_height: int = 40) -> Optional[ctk.CTkImage]:
+        """
+        Create a CustomTkinter CTkImage from the game logo, maintaining aspect ratio.
+
+        Args:
+            target_height: Desired height in pixels (width will be calculated to maintain ratio)
+
+        Returns:
+            CTkImage object or None if failed
+        """
+        try:
+            if GAME_LOGO.exists():
+                image = Image.open(GAME_LOGO)
+
+                # Calculate width to maintain aspect ratio
+                original_width, original_height = image.size
+                aspect_ratio = original_width / original_height
+                target_width = int(target_height * aspect_ratio)
+
+                # Resize maintaining aspect ratio
+                resized_image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+
+                # CTkImage handles light/dark mode automatically
+                return ctk.CTkImage(light_image=resized_image, dark_image=resized_image,
+                                    size=(target_width, target_height))
+
+            return None
+
+        except Exception as e:
+            print(f"Failed to create logo CTkImage: {e}")
+            return None
+
+    def get_logo_info(self) -> Optional[dict]:
+        """
+        Get information about the game logo.
+
+        Returns:
+            Dictionary with logo info or None if failed
+        """
+        try:
+            if GAME_LOGO.exists():
+                image = Image.open(GAME_LOGO)
+                return {
+                    "size": image.size,
+                    "format": image.format,
+                    "mode": image.mode,
+                    "width": image.width,
+                    "height": image.height,
+                    "aspect_ratio": image.width / image.height
+                }
+            return None
+        except Exception as e:
+            print(f"Failed to get logo info: {e}")
+            return None
 
 # Global instance
 icon_manager = IconManager()
