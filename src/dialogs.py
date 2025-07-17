@@ -1,4 +1,4 @@
-"""Dialog windows for the Ready Set Bet application."""
+"""Updated dialog positioning methods for the existing Ready Set Bet dialog architecture."""
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Callable
 
 
 class BetDialog:
-    """Base class for betting dialogs."""
+    """Base class for betting dialogs with improved positioning."""
 
     def __init__(self, parent, players: Dict, title: str = "Place Bet"):
         self.parent = parent
@@ -16,12 +16,72 @@ class BetDialog:
         self.setup_dialog(title)
 
     def setup_dialog(self, title: str):
-        """Set up the dialog window."""
+        """Set up the dialog window with center positioning."""
         self.dialog = tk.Toplevel(self.parent)
         self.dialog.title(title)
-        self.dialog.geometry("350x400")
+        # Start with a reasonable default, will be resized after content is added
+        self.dialog.geometry("400x300")
+        self.dialog.minsize(350, 250)
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
+
+    def auto_resize_and_center(self):
+        """Automatically resize dialog based on content and center it."""
+        # Update to calculate the required size
+        self.dialog.update_idletasks()
+
+        # Get the required size for all content
+        req_width = self.dialog.winfo_reqwidth()
+        req_height = self.dialog.winfo_reqheight()
+
+        # Add some padding for comfort
+        width = max(350, req_width + 50)
+        height = max(250, req_height + 50)
+
+        # Limit maximum size to prevent huge dialogs
+        max_width = int(self.dialog.winfo_screenwidth() * 0.7)
+        max_height = int(self.dialog.winfo_screenheight() * 0.8)
+
+        width = min(width, max_width)
+        height = min(height, max_height)
+
+        # Apply the new size
+        self.dialog.geometry(f"{width}x{height}")
+
+        # Center the dialog with the new size
+        self.center_dialog()
+
+    def center_dialog(self, dialog=None):
+        """Center the dialog on the parent window."""
+        # Use self.dialog if no dialog parameter is provided (for BetDialog inheritance)
+        target_dialog = dialog if dialog else self.dialog
+
+        # Update the dialog to ensure it has processed its geometry
+        target_dialog.update_idletasks()
+
+        # Get parent window position and size
+        parent_x = self.parent.winfo_rootx()
+        parent_y = self.parent.winfo_rooty()
+        parent_width = self.parent.winfo_width()
+        parent_height = self.parent.winfo_height()
+
+        # Get dialog size
+        dialog_width = target_dialog.winfo_reqwidth()
+        dialog_height = target_dialog.winfo_reqheight()
+
+        # Calculate center position
+        x = parent_x + (parent_width // 2) - (dialog_width // 2)
+        y = parent_y + (parent_height // 2) - (dialog_height // 2)
+
+        # Ensure the dialog doesn't go off-screen
+        screen_width = target_dialog.winfo_screenwidth()
+        screen_height = target_dialog.winfo_screenheight()
+
+        x = max(0, min(x, screen_width - dialog_width))
+        y = max(0, min(y, screen_height - dialog_height))
+
+        # Set the position
+        target_dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
 
     def create_player_selection(self) -> tk.StringVar:
         """Create player selection combobox."""
@@ -78,6 +138,8 @@ class StandardBetDialog(BetDialog):
         self.penalty = penalty
         super().__init__(parent, players, "Place Standard Bet")
         self.setup_content()
+        # Auto-resize after content is added
+        self.auto_resize_and_center()
 
     def setup_content(self):
         """Set up the dialog content."""
@@ -151,6 +213,8 @@ class SpecialBetDialog(BetDialog):
         self.multiplier = multiplier
         super().__init__(parent, players, "Place Special Bet")
         self.setup_content()
+        # Auto-resize after content is added
+        self.auto_resize_and_center()
 
     def setup_content(self):
         """Set up the dialog content."""
@@ -215,6 +279,15 @@ class PropBetDialog(BetDialog):
         self.prop_bet = prop_bet
         super().__init__(parent, players, "Place Prop Bet")
         self.setup_content()
+        # Auto-resize after content is added, with extra width for long descriptions
+        self.auto_resize_and_center()
+        # Ensure minimum width for prop bet descriptions
+        current_geometry = self.dialog.geometry()
+        width = int(current_geometry.split('x')[0])
+        height = int(current_geometry.split('x')[1].split('+')[0])
+        if width < 450:  # Ensure minimum width for readability
+            self.dialog.geometry(f"450x{height}")
+            self.center_dialog()
 
     def setup_content(self):
         """Set up the dialog content."""
@@ -281,6 +354,15 @@ class ExoticFinishDialog(BetDialog):
         self.exotic_finish = exotic_finish
         super().__init__(parent, players, "Place Exotic Finish Bet")
         self.setup_content()
+        # Auto-resize after content is added, with extra width for long descriptions
+        self.auto_resize_and_center()
+        # Ensure minimum width for exotic finish descriptions
+        current_geometry = self.dialog.geometry()
+        width = int(current_geometry.split('x')[0])
+        height = int(current_geometry.split('x')[1].split('+')[0])
+        if width < 500:  # Ensure minimum width for readability
+            self.dialog.geometry(f"500x{height}")
+            self.center_dialog()
 
     def setup_content(self):
         """Set up the dialog content."""
@@ -343,7 +425,7 @@ class ExoticFinishDialog(BetDialog):
 
 
 class RaceResultsDialog:
-    """Dialog for entering race results."""
+    """Dialog for entering race results with center positioning."""
 
     def __init__(self, parent, horses: List[str], prop_bets: List[Dict], exotic_finishes: List[Dict], current_bets: Dict):
         self.parent = parent
@@ -355,13 +437,26 @@ class RaceResultsDialog:
         self.setup_dialog()
 
     def setup_dialog(self):
-        """Set up the dialog."""
+        """Set up the dialog with dynamic sizing based on content."""
         dialog = tk.Toplevel(self.parent)
         dialog.title("Enter Race Results")
-        dialog.geometry("500x600")
+        # Start with a reasonable default, will be resized after content is added
+        dialog.geometry("500x400")
+        dialog.minsize(450, 350)
         dialog.transient(self.parent)
         dialog.grab_set()
 
+        # Create all content first
+        self.create_dialog_content(dialog)
+
+        # Then auto-resize based on actual content
+        self.auto_resize_race_dialog(dialog)
+
+    def create_dialog_content(self, dialog):
+        """Create all the dialog content."""
+
+    def create_dialog_content(self, dialog):
+        """Create all the dialog content."""
         # Create scrollable frame
         canvas = tk.Canvas(dialog)
         scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
@@ -513,7 +608,76 @@ class RaceResultsDialog:
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        # Store references for auto-resizing
+        self.canvas = canvas
+        self.scrollable_frame = scrollable_frame
+        self.prop_vars = prop_vars
+        self.exotic_vars = exotic_vars
+        self.entries = entries
+
         dialog.wait_window()
+
+    def auto_resize_race_dialog(self, dialog):
+        """Auto-resize the race results dialog based on content."""
+        # Update to calculate required size
+        dialog.update_idletasks()
+
+        # Calculate content size
+        self.scrollable_frame.update_idletasks()
+        content_height = self.scrollable_frame.winfo_reqheight()
+
+        # Count number of sections to estimate needed height
+        prop_bets_count = len(self._get_prop_bets_with_bets())
+        exotic_finishes_count = len(self._get_exotic_finishes_with_bets())
+
+        # Base height for horse entry fields and examples
+        base_height = 300
+
+        # Add height for prop bets and exotic finishes
+        additional_height = (prop_bets_count * 80) + (exotic_finishes_count * 100)
+
+        # Calculate required height
+        required_height = base_height + additional_height + 100  # Extra padding
+
+        # Set reasonable bounds
+        min_height = 400
+        max_height = int(dialog.winfo_screenheight() * 0.8)
+
+        height = max(min_height, min(required_height, max_height))
+        width = 550  # Fixed width that works well for the content
+
+        # Apply size and center
+        dialog.geometry(f"{width}x{height}")
+        self.center_dialog(dialog)
+
+    def center_dialog(self, dialog):
+        """Center the dialog on the parent window."""
+        # Update the dialog to ensure it has processed its geometry
+        dialog.update_idletasks()
+
+        # Get parent window position and size
+        parent_x = self.parent.winfo_rootx()
+        parent_y = self.parent.winfo_rooty()
+        parent_width = self.parent.winfo_width()
+        parent_height = self.parent.winfo_height()
+
+        # Get dialog size
+        dialog_width = dialog.winfo_reqwidth()
+        dialog_height = dialog.winfo_reqheight()
+
+        # Calculate center position
+        x = parent_x + (parent_width // 2) - (dialog_width // 2)
+        y = parent_y + (parent_height // 2) - (dialog_height // 2)
+
+        # Ensure the dialog doesn't go off-screen
+        screen_width = dialog.winfo_screenwidth()
+        screen_height = dialog.winfo_screenheight()
+
+        x = max(0, min(x, screen_width - dialog_width))
+        y = max(0, min(y, screen_height - dialog_height))
+
+        # Set the position
+        dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
 
     def _get_prop_bets_with_bets(self) -> List[Dict]:
         """Get only the prop bets that have actual bets placed on them."""
@@ -551,7 +715,7 @@ class RaceResultsDialog:
 
 
 class AddPlayerDialog:
-    """Dialog for adding a new player."""
+    """Dialog for adding a new player with center positioning."""
 
     def __init__(self, parent, existing_players: List[str]):
         self.parent = parent
@@ -560,12 +724,16 @@ class AddPlayerDialog:
         self.setup_dialog()
 
     def setup_dialog(self):
-        """Set up the dialog."""
+        """Set up the dialog with center positioning."""
         dialog = tk.Toplevel(self.parent)
         dialog.title("Add Player")
-        dialog.geometry("300x150")
+        dialog.geometry("400x200")  # Larger for comfortable use
+        dialog.minsize(350, 180)     # Minimum size
         dialog.transient(self.parent)
         dialog.grab_set()
+
+        # Center the dialog on the parent window
+        self.center_dialog(dialog)
 
         ttk.Label(dialog, text="Player Name:").pack(pady=10)
         name_entry = ttk.Entry(dialog, width=20)
@@ -586,3 +754,32 @@ class AddPlayerDialog:
 
         dialog.bind('<Return>', lambda e: add_player_action())
         dialog.wait_window()
+
+    def center_dialog(self, dialog):
+        """Center the dialog on the parent window."""
+        # Update the dialog to ensure it has processed its geometry
+        dialog.update_idletasks()
+
+        # Get parent window position and size
+        parent_x = self.parent.winfo_rootx()
+        parent_y = self.parent.winfo_rooty()
+        parent_width = self.parent.winfo_width()
+        parent_height = self.parent.winfo_height()
+
+        # Get dialog size
+        dialog_width = dialog.winfo_reqwidth()
+        dialog_height = dialog.winfo_reqheight()
+
+        # Calculate center position
+        x = parent_x + (parent_width // 2) - (dialog_width // 2)
+        y = parent_y + (parent_height // 2) - (dialog_height // 2)
+
+        # Ensure the dialog doesn't go off-screen
+        screen_width = dialog.winfo_screenwidth()
+        screen_height = dialog.winfo_screenheight()
+
+        x = max(0, min(x, screen_width - dialog_width))
+        y = max(0, min(y, screen_height - dialog_height))
+
+        # Set the position
+        dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
