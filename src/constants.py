@@ -9,6 +9,7 @@ ASSETS_DIR = PROJECT_ROOT / "assets"
 # Icon paths
 GAME_ICON = ASSETS_DIR / "icon.png"
 GAME_LOGO = ASSETS_DIR / "logo.png"
+
 # Game configuration
 MAX_RACES = 4
 STARTING_MONEY = 0
@@ -25,17 +26,53 @@ PLAYER_TOKENS = {
 # Horse configuration
 HORSES = ["2/3", "4", "5", "6", "7", "8", "9", "10", "11/12"]
 
+# UI Theme Colors - Centralized color management
+class Theme:
+    # Main colors
+    SURFACE = "#111827"
+    CARD = "#1f2937"
+    PRIMARY = "#1f2937"
+    SECONDARY = "#374151"
+
+    # Action colors
+    ACCENT = "#3b82f6"
+    SUCCESS = "#10b981"
+    WARNING = "#f59e0b"
+    DANGER = "#ef4444"
+    DISABLED = "#6b7280"
+
+    # Betting colors
+    SHOW = "#cd7f32"      # Bronze
+    PLACE = "#c0c0c0"     # Silver
+    WIN = "#ffd700"       # Gold
+    LOCKED = "#6b7280"    # Gray
+
+    # Special bet colors
+    BLUE_BET = "#2563eb"
+    ORANGE_BET = "#ea580c"
+    RED_BET = "#dc2626"
+    BLACK_BET = "#7c2d12"
+
+    # Other bet types
+    PROP = "#7c3aed"      # Purple
+    EXOTIC = "#0891b2"    # Teal
+
+    # Text colors
+    TEXT_LIGHT = "#ffffff"
+    TEXT_DARK = "#000000"
+    TEXT_MUTED = "#9ca3af"
+
 # Horse colors for visual reference
 HORSE_COLORS = {
-    "2/3": "#4A90E2",    # Blue
-    "4": "#4A90E2",      # Blue
-    "5": "#F5A623",      # Orange
-    "6": "#D0021B",      # Red
-    "7": "#000000",      # Black
-    "8": "#D0021B",      # Red
-    "9": "#F5A623",      # Orange
-    "10": "#4A90E2",     # Blue
-    "11/12": "#4A90E2"   # Blue
+    "2/3": Theme.BLUE_BET,
+    "4": Theme.BLUE_BET,
+    "5": Theme.ORANGE_BET,
+    "6": Theme.RED_BET,
+    "7": "#000000",
+    "8": Theme.RED_BET,
+    "9": Theme.ORANGE_BET,
+    "10": Theme.BLUE_BET,
+    "11/12": Theme.BLUE_BET
 }
 
 # Betting grid data - (multiplier, penalty) - 0 means no penalty
@@ -109,36 +146,36 @@ EXOTIC_FINISHES = [
     {"id": 5, "name": "PHOTO FINISH", "description": "The 3rd place horse loses by 3 or fewer spaces", "multiplier": 5, "penalty": 3}
 ]
 
-# UI Colors
+# UI Colors - Legacy support (keeping for backward compatibility)
 COLORS = {
     "show": {
-        "bg": "#B87333",  # Copper
+        "bg": Theme.SHOW,
         "fg": "white"
     },
     "place": {
-        "bg": "#C0C0C0",  # Silver
+        "bg": Theme.PLACE,
         "fg": "black"
     },
     "win": {
-        "bg": "#FFD700",  # Gold
+        "bg": Theme.WIN,
         "fg": "black"
     },
     "locked": {
-        "bg": "#808080",  # Gray
+        "bg": Theme.LOCKED,
         "fg": "white"
     },
     "special": {
-        "blue": {"bg": "#1976D2", "fg": "white"},
-        "orange": {"bg": "#F57C00", "fg": "white"},
-        "red": {"bg": "#D32F2F", "fg": "white"},
-        "black": {"bg": "#424242", "fg": "white"}
+        "blue": {"bg": Theme.BLUE_BET, "fg": "white"},
+        "orange": {"bg": Theme.ORANGE_BET, "fg": "white"},
+        "red": {"bg": Theme.RED_BET, "fg": "white"},
+        "black": {"bg": Theme.BLACK_BET, "fg": "white"}
     },
     "prop": {
-        "bg": "#7B1FA2",  # Purple
+        "bg": Theme.PROP,
         "fg": "white"
     },
     "exotic": {
-        "bg": "#0891b2",  # Deep Orange
+        "bg": Theme.EXOTIC,
         "fg": "white"
     }
 }

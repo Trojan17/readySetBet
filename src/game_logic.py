@@ -13,7 +13,8 @@ class GameLogic:
         self.game_state = game_state
 
     def process_race_results(self, win_horses: List[str], place_horses: List[str], show_horses: List[str],
-                           prop_results: Dict[int, bool], exotic_results: Dict[int, bool]) -> Tuple[List[str], List[str]]:
+                             prop_results: Dict[int, bool], exotic_results: Dict[int, bool]) -> Tuple[
+        List[str], List[str]]:
         """Process race results and calculate payouts."""
         self.game_state.race_results = RaceResults(win_horses, place_horses, show_horses, prop_results, exotic_results)
 
