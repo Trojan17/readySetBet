@@ -2,7 +2,7 @@
 
 import customtkinter as ctk
 from typing import Dict, List, Callable, Optional
-from .constants import HORSES, BETTING_GRID, SPECIAL_BETS
+from .constants import HORSES, BETTING_GRID, SPECIAL_BETS, HORSE_COLORS
 
 # Modern color scheme with better contrast
 BETTING_COLORS = {
@@ -277,15 +277,17 @@ class ModernBettingBoard:
         for horse_idx, horse in enumerate(HORSES):
             row = horse_idx + 1
 
-            # Horse label
+            # Horse label with correct color from constants
+            horse_color = HORSE_COLORS.get(horse, "#3b82f6")  # Use constants, default to blue
+
             horse_label = ctk.CTkLabel(
                 self.grid_frame,
                 text=f"🐎 {horse}",
-                font=ctk.CTkFont(size=12, weight="bold"),
-                fg_color="#1d4ed8",
+                font=ctk.CTkFont(size=11, weight="bold"),
+                fg_color=horse_color,  # Use color from constants
                 text_color="white",
-                height=40,
-                corner_radius=8
+                height=35,
+                corner_radius=6
             )
             horse_label.grid(row=row, column=7, padx=2, pady=2, sticky="ew")
 
@@ -299,9 +301,9 @@ class ModernBettingBoard:
                 bet_type = "show" if col_idx < 2 else "place" if col_idx < 4 else "win"
                 color = BETTING_COLORS[bet_type]
                 hover_color = BETTING_COLORS[f"hover_{bet_type}"]
-                text_color = BETTING_COLORS["text_dark"] if bet_type == "win" else BETTING_COLORS["text"]
+                text_color = "black" if bet_type == "win" else "white"
 
-                # Button text with larger font
+                # Button text
                 if penalty > 0:
                     btn_text = f"{multiplier}x\n-${penalty}"
                 else:
@@ -310,12 +312,12 @@ class ModernBettingBoard:
                 btn = ctk.CTkButton(
                     self.grid_frame,
                     text=btn_text,
-                    font=ctk.CTkFont(size=12, weight="bold"),
+                    font=ctk.CTkFont(size=10, weight="bold"),
                     fg_color=color,
                     hover_color=hover_color,
                     text_color=text_color,
-                    height=40,
-                    corner_radius=8,
+                    height=35,
+                    corner_radius=6,
                     command=lambda h=horse, t=bet_type, m=multiplier, p=penalty, r=row, c=col_idx:
                     self.on_standard_bet(h, t, m, p, r, c)
                 )
