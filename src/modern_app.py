@@ -44,6 +44,9 @@ RACING_COLORS = {
     # Prop and exotic
     "prop": "#8b5cf6",     # Purple
     "exotic": "#f59e0b",   # Orange
+
+    # Button states
+    "disabled": "#4b5563",  # Dark gray for disabled buttons
 }
 
 
@@ -73,7 +76,15 @@ class ModernReadySetBetApp:
         self.status_var = None
         self.race_label = None
 
+        # Control buttons - store references for state management
+        self.add_player_btn = None
+        self.start_race_btn = None
+        self.end_race_btn = None
+        self.next_race_btn = None
+        self.reset_game_btn = None
+
         self.setup_ui()
+        self.update_button_states()  # Set initial button states
 
     def setup_ui(self):
         """Set up the modern user interface."""
@@ -113,25 +124,259 @@ class ModernReadySetBetApp:
         controls_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
         controls_frame.grid(row=0, column=2, padx=20, pady=20, sticky="e")
 
-        buttons = [
-            ("👤 Add Player", self.add_player, RACING_COLORS["accent"]),
-            ("🚦 Start Race", self.start_race, RACING_COLORS["success"]),
-            ("🏁 End Race", self.end_race, RACING_COLORS["warning"]),
-            ("⏭️ Next Race", self.next_race, RACING_COLORS["accent"]),
-            ("🔄 Reset Game", self.reset_game, RACING_COLORS["danger"])
-        ]
+        # Create and store button references
+        self.add_player_btn = ctk.CTkButton(
+            controls_frame,
+            text="👤 Add Player",
+            command=self.add_player,
+            fg_color=RACING_COLORS["accent"],
+            font=ctk.CTkFont(size=12),
+            width=100,
+            height=32
+        )
+        self.add_player_btn.grid(row=0, column=0, padx=5)
 
-        for i, (text, command, color) in enumerate(buttons):
-            btn = ctk.CTkButton(
-                controls_frame,
-                text=text,
-                command=command,
-                fg_color=color,
-                font=ctk.CTkFont(size=12),
-                width=100,
-                height=32
+        self.start_race_btn = ctk.CTkButton(
+            controls_frame,
+            text="🚦 Start Race",
+            command=self.start_race,
+            fg_color=RACING_COLORS["success"],
+            font=ctk.CTkFont(size=12),
+            width=100,
+            height=32
+        )
+        self.start_race_btn.grid(row=0, column=1, padx=5)
+
+        self.end_race_btn = ctk.CTkButton(
+            controls_frame,
+            text="🏁 End Race",
+            command=self.end_race,
+            fg_color=RACING_COLORS["warning"],
+            font=ctk.CTkFont(size=12),
+            width=100,
+            height=32
+        )
+        self.end_race_btn.grid(row=0, column=2, padx=5)
+
+        self.next_race_btn = ctk.CTkButton(
+            controls_frame,
+            text="⏭️ Next Race",
+            command=self.next_race,
+            fg_color=RACING_COLORS["accent"],
+            font=ctk.CTkFont(size=12),
+            width=100,
+            height=32
+        )
+        self.next_race_btn.grid(row=0, column=3, padx=5)
+
+        self.reset_game_btn = ctk.CTkButton(
+            controls_frame,
+            text="🔄 Reset Game",
+            command=self.reset_game,
+            fg_color=RACING_COLORS["danger"],
+            font=ctk.CTkFont(size=12),
+            width=100,
+            height=32
+        )
+        self.reset_game_btn.grid(row=0, column=4, padx=5)
+
+    def update_button_states(self):
+        """Update the state of control buttons based on current game state."""
+        # Add Player: Only enabled when race is not active
+        if self.game_state.race_active:
+            self.add_player_btn.configure(
+                state="disabled",
+                fg_color=RACING_COLORS["disabled"],
+                text="👤 Add Player (Race Active)"
             )
-            btn.grid(row=0, column=i, padx=5)
+        else:
+            self.add_player_btn.configure(
+                state="normal",
+                fg_color=RACING_COLORS["accent"],
+                text="👤 Add Player"
+            )
+
+        # Start Race: Only enabled when race is not active and there are players
+        if self.game_state.race_active or not self.game_state.players:
+            disabled_text = "🚦 Start Race"
+            if self.game_state.race_active:
+                disabled_text += " (Active)"
+            elif not self.game_state.players:
+                disabled_text += " (No Players)"
+
+            self.start_race_btn.configure(
+                state="disabled",
+                fg_color=RACING_COLORS["disabled"],
+                text=disabled_text
+            )
+        else:
+            self.start_race_btn.configure(
+                state="normal",
+                fg_color=RACING_COLORS["success"],
+                text="🚦 Start Race"
+            )
+
+        # End Race: Only enabled when race is active and there are bets
+        if not self.game_state.race_active or not self.game_state.current_bets:
+            disabled_text = "🏁 End Race"
+            if not self.game_state.race_active:
+                disabled_text += " (Not Started)"
+            elif not self.game_state.current_bets:
+                disabled_text += " (No Bets)"
+
+            self.end_race_btn.configure(
+                state="disabled",
+                fg_color=RACING_COLORS["disabled"],
+                text=disabled_text
+            )
+        else:
+            self.end_race_btn.configure(
+                state="normal",
+                fg_color=RACING_COLORS["warning"],
+                text="🏁 End Race"
+            )
+
+        # Next Race: Only enabled when race is not active and not at the last race
+        # Also needs to have completed the current race (race_results exists)
+        can_advance = (
+            not self.game_state.race_active and
+            self.game_state.current_race <= MAX_RACES and
+            (self.game_state.race_results is not None or self.game_state.current_race == 1)
+        )
+
+        if not can_advance:
+            disabled_text = "⏭️ Next Race"
+            if self.game_state.race_active:
+                disabled_text += " (Race Active)"
+            elif self.game_state.current_race > MAX_RACES:
+                disabled_text += " (Game Over)"
+            elif self.game_state.race_results is None and self.game_state.current_race > 1:
+                disabled_text += " (Complete Current)"
+
+            self.next_race_btn.configure(
+                state="disabled",
+                fg_color=RACING_COLORS["disabled"],
+                text=disabled_text
+            )
+        else:
+            if self.game_state.current_race > MAX_RACES:
+                self.next_race_btn.configure(
+                    state="disabled",
+                    fg_color=RACING_COLORS["disabled"],
+                    text="⏭️ Game Complete"
+                )
+            else:
+                self.next_race_btn.configure(
+                    state="normal",
+                    fg_color=RACING_COLORS["accent"],
+                    text="⏭️ Next Race"
+                )
+
+        # Reset Game: Always enabled
+        self.reset_game_btn.configure(
+            state="normal",
+            fg_color=RACING_COLORS["danger"],
+            text="🔄 Reset Game"
+        )
+
+    def update_button_states(self):
+        """Update the state of control buttons based on current game state."""
+        # Add Player: Only enabled when race is not active
+        if self.game_state.race_active:
+            self.add_player_btn.configure(
+                state="disabled",
+                fg_color=RACING_COLORS["disabled"],
+                text="👤 Add Player (Race Active)"
+            )
+        else:
+            self.add_player_btn.configure(
+                state="normal",
+                fg_color=RACING_COLORS["accent"],
+                text="👤 Add Player"
+            )
+
+        # Start Race: Only enabled when race is not active and there are players
+        if self.game_state.race_active or not self.game_state.players:
+            disabled_text = "🚦 Start Race"
+            if self.game_state.race_active:
+                disabled_text += " (Active)"
+            elif not self.game_state.players:
+                disabled_text += " (No Players)"
+
+            self.start_race_btn.configure(
+                state="disabled",
+                fg_color=RACING_COLORS["disabled"],
+                text=disabled_text
+            )
+        else:
+            self.start_race_btn.configure(
+                state="normal",
+                fg_color=RACING_COLORS["success"],
+                text="🚦 Start Race"
+            )
+
+        # End Race: Only enabled when race is active and there are bets
+        if not self.game_state.race_active or not self.game_state.current_bets:
+            disabled_text = "🏁 End Race"
+            if not self.game_state.race_active:
+                disabled_text += " (Not Started)"
+            elif not self.game_state.current_bets:
+                disabled_text += " (No Bets)"
+
+            self.end_race_btn.configure(
+                state="disabled",
+                fg_color=RACING_COLORS["disabled"],
+                text=disabled_text
+            )
+        else:
+            self.end_race_btn.configure(
+                state="normal",
+                fg_color=RACING_COLORS["warning"],
+                text="🏁 End Race"
+            )
+
+        # Next Race: Only enabled when race is not active and not at the last race
+        # Also needs to have completed the current race (race_results exists)
+        can_advance = (
+            not self.game_state.race_active and
+            self.game_state.current_race <= MAX_RACES and
+            (self.game_state.race_results is not None or self.game_state.current_race == 1)
+        )
+
+        if not can_advance:
+            disabled_text = "⏭️ Next Race"
+            if self.game_state.race_active:
+                disabled_text += " (Race Active)"
+            elif self.game_state.current_race > MAX_RACES:
+                disabled_text += " (Game Over)"
+            elif self.game_state.race_results is None and self.game_state.current_race > 1:
+                disabled_text += " (Complete Current)"
+
+            self.next_race_btn.configure(
+                state="disabled",
+                fg_color=RACING_COLORS["disabled"],
+                text=disabled_text
+            )
+        else:
+            if self.game_state.current_race > MAX_RACES:
+                self.next_race_btn.configure(
+                    state="disabled",
+                    fg_color=RACING_COLORS["disabled"],
+                    text="⏭️ Game Complete"
+                )
+            else:
+                self.next_race_btn.configure(
+                    state="normal",
+                    fg_color=RACING_COLORS["accent"],
+                    text="⏭️ Next Race"
+                )
+
+        # Reset Game: Always enabled
+        self.reset_game_btn.configure(
+            state="normal",
+            fg_color=RACING_COLORS["danger"],
+            text="🔄 Reset Game"
+        )
 
     def _setup_main_content(self):
         """Set up the main content area."""
@@ -241,6 +486,7 @@ class ModernReadySetBetApp:
             if self.game_state.place_bet(bet):
                 self.betting_board.update_button_appearance(horse, bet_type, row, col, result["player"])
                 self.update_displays()
+                self.update_button_states()  # Update button states after placing bet
                 self.status_var.set(f"✅ {result['player']} placed ${result['token_value']} token on Horse {horse} to {bet_type}")
 
     def on_special_bet(self, bet_name: str, multiplier: int):
@@ -276,6 +522,7 @@ class ModernReadySetBetApp:
             if self.game_state.place_bet(bet):
                 self.betting_board.update_special_bet_appearance(bet_name, result["player"])
                 self.update_displays()
+                self.update_button_states()  # Update button states after placing bet
                 self.status_var.set(f"✅ {result['player']} placed special bet: {bet_name}")
 
     def on_prop_bet(self, prop_bet: dict):
@@ -311,6 +558,7 @@ class ModernReadySetBetApp:
             if self.game_state.place_bet(bet):
                 self.betting_board.update_prop_bet_appearance(prop_bet["id"], result["player"])
                 self.update_displays()
+                self.update_button_states()  # Update button states after placing bet
                 self.status_var.set(f"✅ {result['player']} placed prop bet")
 
     def on_exotic_bet(self, exotic_finish: dict):
@@ -353,6 +601,7 @@ class ModernReadySetBetApp:
                                        if bet.is_exotic_bet() and bet.exotic_finish_id == exotic_finish['id']]
                 self.betting_board.update_exotic_finish_appearance(exotic_finish["id"], all_players_on_exotic)
                 self.update_displays()
+                self.update_button_states()  # Update button states after placing bet
                 self.status_var.set(f"✅ {result['player']} placed exotic finish bet")
 
     # Game control methods
@@ -362,6 +611,7 @@ class ModernReadySetBetApp:
         if dialog.result:
             self.game_state.add_player(dialog.result)
             self.update_player_display()
+            self.update_button_states()  # Update button states after adding player
             self.status_var.set(f"✅ Added player: {dialog.result}")
 
     def start_race(self):
@@ -372,6 +622,7 @@ class ModernReadySetBetApp:
 
         self.game_state.start_race()
         self.betting_board.set_betting_enabled(True)
+        self.update_button_states()  # Update button states after starting race
         self.status_var.set("🏁 Race in progress - Place your bets!")
         self.log_message("🚦 Race started - Betting is now open!")
 
@@ -421,10 +672,12 @@ class ModernReadySetBetApp:
             self.betting_board.set_betting_enabled(False)
 
             self.update_displays()
+            self.update_button_states()  # Update button states after ending race
             self.status_var.set(f"🏁 Race {self.game_state.current_race} completed - Click 'Next Race' to continue!")
         else:
             # User cancelled - re-enable betting
             self.betting_board.set_betting_enabled(True)
+            self.update_button_states()  # Restore button states
             self.status_var.set("🏁 Race still in progress - Enter results to complete!")
 
     def next_race(self):
@@ -440,6 +693,7 @@ class ModernReadySetBetApp:
         self.betting_board.set_betting_enabled(False)
         self.update_displays()
         self.update_race_display()
+        self.update_button_states()  # Update button states after advancing race
         self.status_var.set(f"🏁 Race {self.game_state.current_race} ready!")
 
     def reset_game(self):
@@ -452,6 +706,7 @@ class ModernReadySetBetApp:
             self.betting_board.set_betting_enabled(False)
             self.update_displays()
             self.update_race_display()
+            self.update_button_states()  # Update button states after reset
             self.results_text.delete("1.0", "end")
             self.status_var.set("🔄 Game reset - Add players and start racing!")
 
@@ -465,6 +720,7 @@ class ModernReadySetBetApp:
             result_text += f"{emoji} {i + 1}. {name}: ${money}\n"
 
         self.log_message(result_text)
+        self.update_button_states()  # Update button states for game over
         messagebox.showinfo("Game Over", result_text)
 
     # Utility methods
