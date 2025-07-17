@@ -23,7 +23,7 @@ A Python application that recreates the betting mechanics of the Ready Set Bet b
 ## Usage
 
 ```bash
-python main.py
+python modern_main.py
 ```
 
 ## Project Structure
