@@ -17,7 +17,7 @@ BETTING_COLORS = {
     "blue_bet": "#2563eb",    # More vibrant blue
     "orange_bet": "#ea580c",  # More vibrant orange
     "red_bet": "#dc2626",     # More vibrant red
-    "black_bet": "#6b7280",   # Dark gray
+    "black_bet": "#7c2d12",   # Dark gray
 
     "prop": "#7c3aed",     # More vibrant purple
     "exotic": "#0891b2",   # More vibrant orange
@@ -45,8 +45,44 @@ class ModernBettingBoard:
         self.prop_bet_buttons = {}
         self.exotic_finish_buttons = {}
 
+        # ADD: Storage for current bets and game state reference
+        self.current_bets = {}
+        self.game_state = None  # Will be set by the main app
+
         self.setup_board()
 
+    def set_game_state(self, game_state):
+        """Set reference to game state for bet management."""
+        self.game_state = game_state
+
+    def remove_selected_bet(self):
+        """Remove the selected bet from the textbox."""
+        if not self.game_state:
+            return
+        try:
+            # Get current selection from textbox
+            selection = self.bets_text.selection_get()
+            if not selection:
+                # No selection, try to get current line
+                current_pos = self.bets_text.index("insert")
+                line_start = current_pos.split('.')[0] + '.0'
+                line_end = current_pos.split('.')[0] + '.end'
+                selection = self.bets_text.get(line_start, line_end)
+
+            if selection:
+                # Find the bet by matching player and bet info
+                for bet_id, bet in list(self.game_state.current_bets.items()):
+                    if bet.player in selection:
+                        # Remove the bet
+                        if self.game_state.remove_bet(bet_id):
+                            # Update the display
+                            self.update_bets_display(self.game_state.current_bets)
+                            # Reset button appearance
+                            self._reset_bet_button(bet)
+                            break
+
+        except Exception as e:
+            print(f"No bet selected or error removing bet: {e}")
     def setup_board(self):
         """Set up the modern betting board."""
         # Main container with scrollable frame
@@ -131,7 +167,7 @@ class ModernBettingBoard:
         special_title = ctk.CTkLabel(
             special_frame,
             text="👑 SPECIAL RACING BETS",
-            font=ctk.CTkFont(size=18, weight="bold"),
+            font=ctk.CTkFont(size=16, weight="bold"),
             text_color="#f59e0b"
         )
         special_title.pack(pady=(15, 10))
@@ -155,15 +191,31 @@ class ModernBettingBoard:
             else:
                 btn_text = f"{name}\n🏆 {payout} | ✅ FREE"
 
-            btn = ctk.CTkButton(
-                special_buttons_frame,
-                text=btn_text,
-                font=ctk.CTkFont(size=15, weight="bold"),
-                fg_color=color_map[color],
-                text_color="white",
-                height=80,
-                command=lambda n=name, p=int(payout[:-1]): self.on_special_bet(n, p)
-            )
+            # Special handling for the 7th horse button
+            if name == "7 Finishes 5th or Worse":
+                def seventh_horse_click():
+                    print("7 Finishes 5th or Worse button clicked!")
+                    self.on_special_bet("7 Finishes 5th or Worse", 4)
+
+                btn = ctk.CTkButton(
+                    special_buttons_frame,
+                    text=btn_text,
+                    font=ctk.CTkFont(size=13, weight="bold"),
+                    fg_color="#7c2d12",  # Dark brown
+                    height=70,
+                    command=seventh_horse_click
+                )
+            else:
+                multiplier = int(payout.replace('x', ''))
+                btn = ctk.CTkButton(
+                    special_buttons_frame,
+                    text=btn_text,
+                    font=ctk.CTkFont(size=13, weight="bold"),
+                    fg_color=color_map[color],
+                    height=70,
+                    command=lambda n=name, m=multiplier: self.on_special_bet(n, m)
+                )
+
             btn.grid(row=0, column=i, padx=5, pady=5, sticky="ew")
             self.special_bet_buttons[name] = btn
 
@@ -334,6 +386,8 @@ class ModernBettingBoard:
                     "penalty": penalty
                 })
 
+        # FIND the _setup_current_bets method in src/modern_ui_components.py and REPLACE it:
+
     def _setup_current_bets(self):
         """Set up the current bets display."""
         bets_container = ctk.CTkFrame(self.main_container, fg_color=BETTING_COLORS["card"])
@@ -343,71 +397,54 @@ class ModernBettingBoard:
         bets_title = ctk.CTkLabel(
             bets_container,
             text="🎫 ACTIVE BETS",
-            font=ctk.CTkFont(size=18, weight="bold"),
+            font=ctk.CTkFont(size=16, weight="bold"),
             text_color="#10b981"
         )
         bets_title.pack(pady=(15, 10))
 
-        # Bets display area
-        self.bets_text = ctk.CTkTextbox(
+        # Scrollable frame for bet cards
+        self.bets_scroll_frame = ctk.CTkScrollableFrame(
             bets_container,
-            font=ctk.CTkFont(size=12),
             fg_color=BETTING_COLORS["surface"],
-            text_color="white",
-            height=150
+            height=200
         )
-        self.bets_text.pack(fill="x", padx=15, pady=(0, 10))
+        self.bets_scroll_frame.pack(fill="both", expand=True, padx=15, pady=(0, 10))
 
-        # Action buttons
+        # Clear All button
         button_frame = ctk.CTkFrame(bets_container, fg_color="transparent")
         button_frame.pack(fill="x", padx=15, pady=(0, 15))
-        button_frame.grid_columnconfigure((0, 1), weight=1)
-
-        self.remove_btn = ctk.CTkButton(
-            button_frame,
-            text="🗑️ Remove Selected",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            fg_color="#ef4444",
-            hover_color="#dc2626",
-            text_color="white",
-            height=40
-        )
-        self.remove_btn.grid(row=0, column=0, padx=(0, 5), sticky="ew")
 
         self.clear_btn = ctk.CTkButton(
             button_frame,
             text="🧹 Clear All Bets",
-            font=ctk.CTkFont(size=13, weight="bold"),
+            font=ctk.CTkFont(size=14, weight="bold"),
             fg_color="#6b7280",
             hover_color="#4b5563",
-            text_color="white",
-            height=40
+            height=35,
+            command=self.clear_all_bets
         )
-        self.clear_btn.grid(row=0, column=1, padx=(5, 0), sticky="ew")
+        self.clear_btn.pack(fill="x")
 
     def update_bets_display(self, bets: Dict):
-        """Update the current bets display."""
-        self.bets_text.delete("1.0", "end")
+        """Update the current bets display with individual bet cards."""
+        # Clear existing bet cards
+        for widget in self.bets_scroll_frame.winfo_children():
+            widget.destroy()
 
         if not bets:
-            self.bets_text.insert("1.0", "No active bets placed.\nStart betting to see them here!")
+            no_bets_label = ctk.CTkLabel(
+                self.bets_scroll_frame,
+                text="No active bets placed.\n\nStart betting to see them here!",
+                font=ctk.CTkFont(size=12),
+                text_color="#666666"
+            )
+            no_bets_label.pack(pady=20)
             return
 
-        for bet in bets.values():
-            penalty_text = f"-${bet.potential_loss}" if bet.potential_loss > 0 else "FREE"
+        # Create individual bet cards
+        for bet_id, bet in bets.items():
+            self._create_bet_card(bet_id, bet)
 
-            # Format bet display
-            if bet.is_prop_bet():
-                bet_info = f"🎯 PROP #{bet.prop_bet_id}"
-            elif bet.is_exotic_bet():
-                bet_info = f"⭐ EXOTIC #{bet.exotic_finish_id}"
-            elif bet.horse == "Special":
-                bet_info = f"👑 {bet.bet_type}"
-            else:
-                bet_info = f"🐎 {bet.horse} {bet.bet_type.upper()}"
-
-            bet_line = f"🏇 {bet.player} | {bet_info} | 🎫 ${bet.token_value} | 💰 +${bet.potential_payout} | 💸 {penalty_text}\n"
-            self.bets_text.insert("end", bet_line)
 
     def update_button_appearance(self, horse: str, bet_type: str, row: int, col: int, player: str):
         """Update button to show it's locked by a player."""
@@ -505,7 +542,7 @@ class ModernBettingBoard:
                     else:
                         button.configure(state="disabled")
 
-        # Special bet buttons
+        # Special bet buttons - MAKE SURE all are handled
         for button in self.special_bet_buttons.values():
             if enabled:
                 if button.cget("fg_color") != BETTING_COLORS["locked"]:
@@ -595,8 +632,7 @@ class ModernBettingBoard:
                     button.configure(
                         text=btn_text,
                         fg_color=color_map[color],
-                        text_color="white",
-                        state="normal"
+                        state="normal"  # MAKE SURE state is set to normal
                     )
                     break
 
@@ -639,3 +675,139 @@ class ModernBettingBoard:
                 hover_color="#0e7490",
                 state="normal"
             )
+
+    def clear_all_bets(self):
+        """Clear all current bets."""
+        if not self.game_state:
+            return
+
+        # Clear all bets from game state
+        self.game_state.clear_all_bets()
+
+        # Reset all button appearances
+        self.reset_all_buttons()
+        self.reset_prop_buttons_to_purple(
+            self.game_state.current_prop_bets if self.game_state.current_prop_bets else [])
+        self.reset_exotic_finishes_to_orange(
+            self.game_state.current_exotic_finishes if self.game_state.current_exotic_finishes else [])
+
+        # Update display
+        self.update_bets_display({})
+
+        # Update button states in main app if available
+        if hasattr(self, 'main_app_callback'):
+            self.main_app_callback()
+
+    def _reset_bet_button(self, bet):
+        """Reset a specific bet button to original appearance."""
+        if bet.is_prop_bet():
+            # Reset prop bet button
+            if bet.prop_bet_id in self.prop_bet_buttons:
+                prop_bet = next((p for p in self.game_state.current_prop_bets if p["id"] == bet.prop_bet_id), None)
+                if prop_bet:
+                    self.reset_prop_bet_appearance(bet.prop_bet_id, prop_bet)
+
+        elif bet.is_exotic_bet():
+            # Reset exotic finish button
+            if bet.exotic_finish_id in self.exotic_finish_buttons:
+                exotic_finish = next(
+                    (ef for ef in self.game_state.current_exotic_finishes if ef["id"] == bet.exotic_finish_id), None)
+                if exotic_finish:
+                    # Get remaining players on this exotic finish
+                    remaining_players = [b.player for b in self.game_state.current_bets.values()
+                                         if
+                                         b.is_exotic_bet() and b.exotic_finish_id == bet.exotic_finish_id and b.player != bet.player]
+                    if remaining_players:
+                        self.update_exotic_finish_appearance(bet.exotic_finish_id, remaining_players)
+                    else:
+                        self.reset_exotic_finish_appearance(bet.exotic_finish_id, exotic_finish)
+
+        elif bet.is_special_bet():
+            # Reset special bet button
+            if bet.bet_type in self.special_bet_buttons:
+                self.reset_special_bet_appearance(bet.bet_type)
+
+        else:
+            # Reset standard bet button
+            if bet.row is not None and bet.col is not None:
+                self.reset_button_appearance(bet.horse, bet.bet_type, bet.row, bet.col)
+
+    def _create_bet_card(self, bet_id: str, bet):
+        """Create an individual bet card with remove button."""
+        # Bet card frame
+        bet_card = ctk.CTkFrame(self.bets_scroll_frame, fg_color=BETTING_COLORS["card"])
+        bet_card.pack(fill="x", padx=5, pady=3)
+        bet_card.grid_columnconfigure(0, weight=1)
+
+        # Bet info frame
+        info_frame = ctk.CTkFrame(bet_card, fg_color="transparent")
+        info_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=8)
+        info_frame.grid_columnconfigure(0, weight=1)
+
+        # Format bet information
+        penalty_text = f"-${bet.potential_loss}" if bet.potential_loss > 0 else "FREE"
+
+        if bet.is_prop_bet():
+            bet_info = f"🎯 PROP #{bet.prop_bet_id}"
+            bet_color = BETTING_COLORS["prop"]
+        elif bet.is_exotic_bet():
+            bet_info = f"⭐ EXOTIC #{bet.exotic_finish_id}"
+            bet_color = BETTING_COLORS["exotic"]
+        elif bet.horse == "Special":
+            bet_info = f"👑 {bet.bet_type}"
+            bet_color = "#f59e0b"  # Orange for special bets
+        else:
+            bet_info = f"🐎 {bet.horse} {bet.bet_type.upper()}"
+            bet_color = BETTING_COLORS[bet.bet_type] if bet.bet_type in BETTING_COLORS else "#3b82f6"
+
+        # Player name and bet type
+        player_label = ctk.CTkLabel(
+            info_frame,
+            text=f"🏇 {bet.player}",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=bet_color
+        )
+        player_label.grid(row=0, column=0, sticky="w")
+
+        # Bet details
+        details_text = f"{bet_info} | 🎫 ${bet.token_value} | 💰 +${bet.potential_payout} | 💸 {penalty_text}"
+        details_label = ctk.CTkLabel(
+            info_frame,
+            text=details_text,
+            font=ctk.CTkFont(size=11),
+            text_color="#ffffff"
+        )
+        details_label.grid(row=1, column=0, sticky="w", pady=(2, 0))
+
+        # Remove button
+        remove_btn = ctk.CTkButton(
+            bet_card,
+            text="🗑️",
+            font=ctk.CTkFont(size=14),
+            fg_color="#ef4444",
+            hover_color="#dc2626",
+            width=40,
+            height=30,
+            command=lambda bid=bet_id: self.remove_specific_bet(bid)
+        )
+        remove_btn.grid(row=0, column=1, padx=(5, 10), pady=8)
+
+    def remove_specific_bet(self, bet_id: str):
+        """Remove a specific bet by ID."""
+        if not self.game_state:
+            return
+
+        bet = self.game_state.current_bets.get(bet_id)
+        if bet and self.game_state.remove_bet(bet_id):
+            # Update the display
+            self.update_bets_display(self.game_state.current_bets)
+            # Reset button appearance
+            self._reset_bet_button(bet)
+
+            # Update button states in main app if available
+            if hasattr(self, 'main_app_callback'):
+                self.main_app_callback()
+
+    def set_main_app_callback(self, callback):
+        """Set callback to update main app when bets change."""
+        self.main_app_callback = callback

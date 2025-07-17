@@ -419,7 +419,7 @@ class ModernReadySetBetApp:
         # Players listbox (using textbox for modern look)
         self.players_text = ctk.CTkTextbox(
             sidebar,
-            font=ctk.CTkFont(size=11),
+            font=ctk.CTkFont(size=12),  # CHANGE: was size=14, now size=12
             fg_color=RACING_COLORS["surface"],
             height=200
         )
@@ -453,7 +453,8 @@ class ModernReadySetBetApp:
             self.on_exotic_bet
         )
 
-        # Update with initial data
+        self.betting_board.set_game_state(self.game_state)
+        self.betting_board.set_main_app_callback(self.update_button_states)
         self.betting_board.update_prop_bets(self.game_state.current_prop_bets)
         self.betting_board.update_exotic_finishes(self.game_state.current_exotic_finishes)
         self.betting_board.set_betting_enabled(False)
@@ -757,7 +758,7 @@ class ModernReadySetBetApp:
         self.players_text.delete("1.0", "end")
 
         if not self.game_state.players:
-            self.players_text.insert("1.0", "No players added yet.\nClick 'Add Player' to start!")
+            self.players_text.insert("1.0", "No players added yet.\n\nClick 'Add Player' to start!")
             return
 
         for player in self.game_state.players.values():
@@ -765,10 +766,17 @@ class ModernReadySetBetApp:
             for value in ["5", "3", "2", "1"]:
                 available = player.get_available_tokens(value)
                 total = player.tokens[value]
-                tokens_available.append(f"${value}:{available}/{total}")
+                tokens_available.append(f"${value}: {available}/{total}")
 
             tokens_str = " | ".join(tokens_available)
-            player_info = f"🏇 {player.name}\n💰 ${player.money}\n🎫 {tokens_str}\n\n"
+
+            # IMPROVED formatting with bigger spacing and clearer layout
+            player_info = (
+                f"🏇 {player.name}\n"
+                f"💰 Money: ${player.money}\n"
+                f"🎫 Tokens: {tokens_str}\n"
+                f"{'─' * 30}\n\n"  # Add separator line
+            )
             self.players_text.insert("end", player_info)
 
     def update_race_display(self):
