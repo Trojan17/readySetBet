@@ -194,7 +194,6 @@ class ModernBettingBoard:
             # Special handling for the 7th horse button
             if name == "7 Finishes 5th or Worse":
                 def seventh_horse_click():
-                    print("7 Finishes 5th or Worse button clicked!")
                     self.on_special_bet("7 Finishes 5th or Worse", 4)
 
                 btn = ctk.CTkButton(
