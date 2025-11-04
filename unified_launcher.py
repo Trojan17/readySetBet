@@ -10,6 +10,11 @@ import threading
 import time
 from tkinter import messagebox
 
+try:
+    import requests
+except ImportError:
+    requests = None  # Will be checked later
+
 class UnifiedLauncher(ctk.CTk):
     """Single unified launcher - does EVERYTHING"""
 
@@ -156,6 +161,16 @@ class UnifiedLauncher(ctk.CTk):
                     self.after(0, self.deiconify)
                     return
 
+                if requests is None:
+                    self.after(0, lambda: messagebox.showerror(
+                        "Missing Dependencies",
+                        "requests library not installed!\n\n"
+                        "Run: pip install requests"
+                    ))
+                    self.after(0, progress.destroy)
+                    self.after(0, self.deiconify)
+                    return
+
                 # Start server in background
                 python_exe = sys.executable
                 if sys.platform == "win32":
@@ -176,15 +191,32 @@ class UnifiedLauncher(ctk.CTk):
 
                 # Update status
                 self.after(0, lambda: status_label.configure(
-                    text="✅ Server started!\n🔄 Getting your IP address..."
+                    text="✅ Server started!\n🔄 Waiting for server to be ready..."
                 ))
 
-                # Wait a moment for server to start
-                time.sleep(3)
+                # Wait for server to be fully ready (poll health endpoint)
+                server_ready = False
+                max_attempts = 20  # 20 attempts * 0.5s = 10 seconds max
+                for attempt in range(max_attempts):
+                    time.sleep(0.5)
+                    try:
+                        response = requests.get("http://localhost:8000/", timeout=2)
+                        if response.status_code == 200:
+                            server_ready = True
+                            break
+                    except:
+                        pass  # Server not ready yet, keep trying
+
+                if not server_ready:
+                    raise Exception("Server failed to start within 10 seconds")
+
+                # Update status
+                self.after(0, lambda: status_label.configure(
+                    text="✅ Server is ready!\n🔄 Getting your IP address..."
+                ))
 
                 # Get public IP
                 try:
-                    import requests
                     public_ip = requests.get('https://api.ipify.org', timeout=5).text
                     ip_text = f"ws://{public_ip}:8000"
                 except:
