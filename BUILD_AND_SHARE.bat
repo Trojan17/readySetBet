@@ -6,8 +6,8 @@ echo ============================================================
 echo.
 echo This script will:
 echo  1. Install all dependencies
-echo  2. Build .exe files
-echo  3. Tell you which files to share with friends
+echo  2. Build ONE .exe file that does EVERYTHING
+echo  3. Tell you which file to share with friends
 echo.
 echo It takes about 10-15 minutes. Go grab a coffee!
 echo.
@@ -15,13 +15,13 @@ pause
 
 echo.
 echo ============================================================
-echo [Step 1/4] Upgrading pip...
+echo [Step 1/3] Upgrading pip...
 echo ============================================================
 python -m pip install --upgrade pip --quiet
 
 echo.
 echo ============================================================
-echo [Step 2/4] Installing dependencies...
+echo [Step 2/3] Installing dependencies...
 echo ============================================================
 echo This may take a few minutes...
 python -m pip install customtkinter Pillow websockets requests --quiet
@@ -30,80 +30,64 @@ python -m pip install pyinstaller --quiet
 
 echo.
 echo ============================================================
-echo [Step 3/4] Building .exe files...
+echo [Step 3/3] Building ONE .exe file...
 echo ============================================================
 echo This takes 10-15 minutes. Please wait...
 echo.
 
-REM Build the game client (what friends will use)
-echo Building Game Client for friends...
-pyinstaller --name="ReadySetBet-Game" ^
+REM Build the unified launcher (ONLY .exe needed!)
+echo Building Ready Set Bet (all-in-one)...
+pyinstaller --name="ReadySetBet" ^
   --onefile ^
   --windowed ^
   --add-data="assets;assets" ^
   --add-data="src;src" ^
+  --add-data="server;server" ^
   --hidden-import=customtkinter ^
   --hidden-import=websockets ^
   --hidden-import=PIL ^
-  --clean ^
-  --noconfirm ^
-  multiplayer_main.py
-
-REM Build the server launcher for you (host)
-echo.
-echo Building Server Launcher for you (the host)...
-pyinstaller --name="ReadySetBet-Server" ^
-  --onefile ^
-  --windowed ^
-  --add-data="server;server" ^
   --hidden-import=uvicorn ^
   --hidden-import=fastapi ^
-  --hidden-import=websockets ^
   --hidden-import=sqlalchemy ^
   --clean ^
   --noconfirm ^
-  simple_launcher.py
+  unified_launcher.py
 
 echo.
 echo ============================================================
-echo [Step 4/4] Cleaning up...
+echo Cleaning up...
 echo ============================================================
-REM Create a dist_final folder with just what's needed
+REM Create a dist_final folder with just the ONE .exe
 if not exist "dist_final" mkdir dist_final
-copy "dist\ReadySetBet-Game.exe" "dist_final\" >nul
-copy "dist\ReadySetBet-Server.exe" "dist_final\" >nul
+copy "dist\ReadySetBet.exe" "dist_final\" >nul
 
 echo.
 echo ============================================================
 echo  SUCCESS! Everything is ready!
 echo ============================================================
 echo.
-echo Your files are in the "dist_final" folder:
+echo Your file is in the "dist_final" folder:
 echo.
-echo   FOR YOU (the host):
-echo     dist_final\ReadySetBet-Server.exe
-echo     ^- Double-click this to start the server
-echo.
-echo   FOR YOUR FRIENDS:
-echo     dist_final\ReadySetBet-Game.exe
-echo     ^- Send this file to your friends (they just double-click it!)
+echo   dist_final\ReadySetBet.exe
+echo   ^- This is the ONLY file you need!
+echo   ^- You AND your friends use this same file
 echo.
 echo ============================================================
 echo  How to use:
 echo ============================================================
 echo.
-echo 1. YOU:
-echo    - Double-click ReadySetBet-Server.exe (starts the server)
-echo    - Note the IP address it shows (e.g., ws://73.45.123.89:8000)
-echo    - Double-click ReadySetBet-Game.exe
-echo    - Click "Create New Session"
-echo    - Share your IP and session code with friends
+echo FOR YOU (the host):
+echo   1. Double-click ReadySetBet.exe
+echo   2. Click "Host a Game"
+echo   3. Server starts automatically
+echo   4. You'll see your IP and session code
+echo   5. Share both with friends!
 echo.
-echo 2. FRIENDS:
-echo    - Double-click ReadySetBet-Game.exe
-echo    - Click "Join a Friend's Game"
-echo    - Enter your IP address and session code
-echo    - Play!
+echo FOR FRIENDS:
+echo   1. Double-click ReadySetBet.exe
+echo   2. Click "Join a Friend's Game"
+echo   3. Enter your IP and session code
+echo   4. Play!
 echo.
 echo ============================================================
 echo.
@@ -111,7 +95,7 @@ echo NOTE: For friends to connect from the internet, you need to:
 echo   1. Forward port 8000 in your router, OR
 echo   2. Use Tailscale VPN (easier!) - see LAUNCHER_GUIDE.md
 echo.
-echo See LAUNCHER_GUIDE.md for detailed instructions.
+echo Send "ReadySetBet.exe" to your friends and you're done!
 echo.
 echo Press any key to open the dist_final folder...
 pause >nul

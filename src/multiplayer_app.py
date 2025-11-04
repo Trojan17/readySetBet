@@ -17,16 +17,51 @@ class MultiplayerReadySetBetApp(ModernReadySetBetApp):
     """Multiplayer version of Ready Set Bet app"""
 
     def __init__(self, root):
-        # Show lobby dialog first
-        self.lobby_dialog = LobbyDialog(root)
-        lobby_result = self.lobby_dialog.get_result()
+        # Check if launched from unified launcher
+        mode_env = os.getenv("READYSETBET_MODE")
 
-        if not lobby_result:
-            # User cancelled
-            root.quit()
-            return
+        if mode_env == "host":
+            # Auto-host mode from unified launcher
+            server_url = os.getenv("READYSETBET_SERVER", "ws://localhost:8000")
+            self.server_public_ip = os.getenv("READYSETBET_SERVER_PUBLIC_IP", "ws://YOUR_IP:8000")
 
-        mode, session_id, player_name, server_url = lobby_result
+            # Ask for player name only
+            name_dialog = ctk.CTkInputDialog(
+                text="Enter your name:",
+                title="Ready Set Bet - Host"
+            )
+            player_name = name_dialog.get_input()
+
+            if not player_name:
+                root.quit()
+                return
+
+            mode = "create"
+            session_id = ""
+            self.is_host_mode = True
+
+        elif mode_env == "join":
+            # Auto-join mode from unified launcher
+            server_url = os.getenv("READYSETBET_SERVER", "ws://localhost:8000")
+            player_name = os.getenv("READYSETBET_PLAYER_NAME", "")
+            session_id = os.getenv("READYSETBET_SESSION_ID", "")
+            mode = "join"
+            self.is_host_mode = False
+            self.server_public_ip = None
+
+        else:
+            # Normal mode - show lobby dialog
+            self.lobby_dialog = LobbyDialog(root)
+            lobby_result = self.lobby_dialog.get_result()
+
+            if not lobby_result:
+                # User cancelled
+                root.quit()
+                return
+
+            mode, session_id, player_name, server_url = lobby_result
+            self.is_host_mode = False
+            self.server_public_ip = None
 
         # Initialize network client
         self.network_client = NetworkClient(server_url)
@@ -116,6 +151,104 @@ class MultiplayerReadySetBetApp(ModernReadySetBetApp):
         self.network_client.start_connection()
 
         self.status_var.set(f"✅ Session {session_id} created! Share this code with friends.")
+
+        # If in host mode from unified launcher, show session info popup
+        if self.is_host_mode and self.server_public_ip:
+            self._show_session_info(session_id, self.server_public_ip)
+
+    def _show_session_info(self, session_id: str, server_ip: str):
+        """Show session information to host"""
+        info_window = ctk.CTkToplevel(self.root)
+        info_window.title("Game Created!")
+        info_window.geometry("550x400")
+        info_window.transient(self.root)
+        info_window.grab_set()
+
+        # Container
+        container = ctk.CTkFrame(info_window, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=30, pady=30)
+
+        # Title
+        title = ctk.CTkLabel(
+            container,
+            text="✅ Game Created Successfully!",
+            font=("Arial", 22, "bold"),
+            text_color="green"
+        )
+        title.pack(pady=(0, 20))
+
+        # Instructions
+        instructions = ctk.CTkLabel(
+            container,
+            text="Share this information with your friends:",
+            font=("Arial", 14)
+        )
+        instructions.pack(pady=(0, 20))
+
+        # Server address box
+        server_frame = ctk.CTkFrame(container, fg_color="#2d2d2d")
+        server_frame.pack(fill="x", pady=(0, 15))
+
+        server_label = ctk.CTkLabel(
+            server_frame,
+            text="Server Address:",
+            font=("Arial", 13, "bold")
+        )
+        server_label.pack(anchor="w", padx=15, pady=(15, 5))
+
+        server_entry = ctk.CTkEntry(
+            server_frame,
+            width=450,
+            height=40,
+            font=("Arial", 14),
+            justify="center"
+        )
+        server_entry.insert(0, server_ip)
+        server_entry.configure(state="readonly")
+        server_entry.pack(padx=15, pady=(0, 15))
+
+        # Session code box
+        code_frame = ctk.CTkFrame(container, fg_color="#2d2d2d")
+        code_frame.pack(fill="x", pady=(0, 20))
+
+        code_label = ctk.CTkLabel(
+            code_frame,
+            text="Session Code:",
+            font=("Arial", 13, "bold")
+        )
+        code_label.pack(anchor="w", padx=15, pady=(15, 5))
+
+        code_entry = ctk.CTkEntry(
+            code_frame,
+            width=450,
+            height=40,
+            font=("Arial", 18, "bold"),
+            justify="center"
+        )
+        code_entry.insert(0, session_id)
+        code_entry.configure(state="readonly")
+        code_entry.pack(padx=15, pady=(0, 15))
+
+        # Instructions
+        hint = ctk.CTkLabel(
+            container,
+            text="Friends need both the server address AND session code to join!",
+            font=("Arial", 12),
+            text_color="yellow"
+        )
+        hint.pack(pady=(0, 20))
+
+        # Close button
+        close_btn = ctk.CTkButton(
+            container,
+            text="Got It!",
+            command=info_window.destroy,
+            height=45,
+            font=("Arial", 14, "bold"),
+            fg_color="#2ecc71",
+            hover_color="#27ae60"
+        )
+        close_btn.pack(fill="x")
 
     def _join_existing_session(self, session_id: str):
         """Join an existing session"""
