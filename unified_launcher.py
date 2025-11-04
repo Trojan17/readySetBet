@@ -25,8 +25,9 @@ class UnifiedLauncher(ctk.CTk):
         self.geometry("600x700")  # Increased height to show all content
         self.resizable(True, True)  # Allow resizing
 
-        # Server process
+        # Server process/thread
         self.server_process = None
+        self.server_thread = None
         self.server_running = False
 
         self._setup_ui()
@@ -205,31 +206,38 @@ class UnifiedLauncher(ctk.CTk):
 
                 self.after(0, lambda: append_log("✓ All dependencies found"))
 
-                # Start server in background
-                python_exe = sys.executable
-                self.after(0, lambda: append_log(f"\nStarting uvicorn server..."))
-                self.after(0, lambda: append_log(f"Python: {python_exe}"))
-                self.after(0, lambda: append_log(f"Command: uvicorn server.main:app --host 0.0.0.0 --port 8000\n"))
+                # Start server in background thread (works in .exe!)
+                self.after(0, lambda: append_log(f"\nStarting uvicorn server programmatically..."))
+                self.after(0, lambda: append_log(f"Host: 0.0.0.0, Port: 8000\n"))
 
-                if sys.platform == "win32":
-                    self.server_process = subprocess.Popen(
-                        [python_exe, "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"],
-                        creationflags=subprocess.CREATE_NO_WINDOW,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                        bufsize=1
-                    )
-                else:
-                    self.server_process = subprocess.Popen(
-                        [python_exe, "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                        bufsize=1
-                    )
+                # Import the FastAPI app
+                from server.main import app as fastapi_app
+
+                # Start uvicorn in a background thread
+                def run_uvicorn():
+                    try:
+                        import uvicorn
+                        self.after(0, lambda: append_log("Starting uvicorn.run()..."))
+                        # Run uvicorn - this will block in this thread
+                        uvicorn.run(
+                            fastapi_app,
+                            host="0.0.0.0",
+                            port=8000,
+                            log_level="info"
+                        )
+                    except Exception as e:
+                        self.after(0, lambda err=str(e): append_log(f"ERROR in uvicorn thread: {err}"))
+
+                # Start server thread (NOT daemon so it keeps running after launcher closes)
+                server_thread = threading.Thread(target=run_uvicorn, daemon=False)
+                server_thread.start()
+                self.after(0, lambda: append_log("✓ Server thread started (will keep running)"))
+
+                # Store thread reference
+                self.server_thread = server_thread
 
                 self.server_running = True
+                self.server_process = None  # No subprocess when running programmatically
 
                 # Update status
                 self.after(0, lambda: status_label.configure(
@@ -239,20 +247,11 @@ class UnifiedLauncher(ctk.CTk):
                 # Wait for server to be fully ready (poll health endpoint)
                 self.after(0, lambda: append_log("Waiting for server to respond..."))
                 server_ready = False
-                max_attempts = 20  # 20 attempts * 0.5s = 10 seconds max
+                max_attempts = 30  # 30 attempts * 0.5s = 15 seconds max (give it more time)
 
                 for attempt in range(max_attempts):
-                    # Check if process crashed
-                    if self.server_process.poll() is not None:
-                        # Process died, read error output
-                        stderr_output = self.server_process.stderr.read()
-                        stdout_output = self.server_process.stdout.read()
-                        self.after(0, lambda out=stdout_output: append_log(f"\nServer stdout:\n{out}"))
-                        self.after(0, lambda err=stderr_output: append_log(f"\nServer stderr:\n{err}"))
-                        raise Exception(f"Server process crashed (exit code: {self.server_process.returncode})")
-
                     time.sleep(0.5)
-                    self.after(0, lambda a=attempt+1: append_log(f"Attempt {a}/20: Checking http://localhost:8000/"))
+                    self.after(0, lambda a=attempt+1: append_log(f"Attempt {a}/30: Checking http://localhost:8000/"))
 
                     try:
                         response = requests.get("http://localhost:8000/", timeout=2)
@@ -270,14 +269,7 @@ class UnifiedLauncher(ctk.CTk):
                         self.after(0, lambda err=str(e): append_log(f"  Error: {err}"))
 
                 if not server_ready:
-                    # Try to get server output
-                    if self.server_process.poll() is None:
-                        self.server_process.terminate()
-                    stderr_output = self.server_process.stderr.read() if self.server_process.stderr else ""
-                    stdout_output = self.server_process.stdout.read() if self.server_process.stdout else ""
-                    self.after(0, lambda out=stdout_output: append_log(f"\nServer stdout:\n{out}"))
-                    self.after(0, lambda err=stderr_output: append_log(f"\nServer stderr:\n{err}"))
-                    raise Exception("Server failed to start within 10 seconds")
+                    raise Exception("Server failed to start within 15 seconds - check if port 8000 is already in use")
 
                 # Update status
                 self.after(0, lambda: status_label.configure(
@@ -318,8 +310,6 @@ class UnifiedLauncher(ctk.CTk):
 
                 # Add a close button instead of auto-closing
                 def close_with_error():
-                    if self.server_process and self.server_process.poll() is None:
-                        self.server_process.terminate()
                     progress.destroy()
                     self.deiconify()
 

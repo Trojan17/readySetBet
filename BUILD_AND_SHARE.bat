@@ -47,8 +47,21 @@ pyinstaller --name="ReadySetBet" ^
   --hidden-import=websockets ^
   --hidden-import=PIL ^
   --hidden-import=uvicorn ^
+  --hidden-import=uvicorn.logging ^
+  --hidden-import=uvicorn.loops ^
+  --hidden-import=uvicorn.loops.auto ^
+  --hidden-import=uvicorn.protocols ^
+  --hidden-import=uvicorn.protocols.http ^
+  --hidden-import=uvicorn.protocols.http.auto ^
+  --hidden-import=uvicorn.lifespan ^
+  --hidden-import=uvicorn.lifespan.on ^
   --hidden-import=fastapi ^
   --hidden-import=sqlalchemy ^
+  --hidden-import=sqlalchemy.ext.declarative ^
+  --hidden-import=pydantic ^
+  --hidden-import=starlette ^
+  --collect-all=uvicorn ^
+  --collect-all=fastapi ^
   --clean ^
   --noconfirm ^
   unified_launcher.py
