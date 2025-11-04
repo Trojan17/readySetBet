@@ -17,8 +17,8 @@ class UnifiedLauncher(ctk.CTk):
         super().__init__()
 
         self.title("🎰 Ready Set Bet")
-        self.geometry("600x500")
-        self.resizable(False, False)
+        self.geometry("600x700")  # Increased height to show all content
+        self.resizable(True, True)  # Allow resizing
 
         # Server process
         self.server_process = None
@@ -28,9 +28,13 @@ class UnifiedLauncher(ctk.CTk):
 
     def _setup_ui(self):
         """Setup the UI"""
+        # Scrollable container to ensure all content is visible
+        scrollable = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        scrollable.pack(fill="both", expand=True, padx=40, pady=40)
+
         # Main container
-        container = ctk.CTkFrame(self, fg_color="transparent")
-        container.pack(fill="both", expand=True, padx=40, pady=40)
+        container = ctk.CTkFrame(scrollable, fg_color="transparent")
+        container.pack(fill="both", expand=True)
 
         # Title
         title = ctk.CTkLabel(
@@ -215,12 +219,21 @@ class UnifiedLauncher(ctk.CTk):
         os.environ["READYSETBET_SERVER"] = "ws://localhost:8000"
         os.environ["READYSETBET_SERVER_PUBLIC_IP"] = server_ip
 
-        # Launch multiplayer game
-        python_exe = sys.executable
-        subprocess.Popen([python_exe, "multiplayer_main.py"])
+        # Hide launcher
+        self.destroy()
 
-        # Close launcher
-        self.quit()
+        # Import and launch multiplayer game directly (works in .exe)
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+        from src.multiplayer_app import MultiplayerReadySetBetApp
+
+        # Create new root window
+        root = ctk.CTk()
+
+        # Create app - it will detect host mode from env vars
+        app = MultiplayerReadySetBetApp(root)
+
+        # Run main loop
+        root.mainloop()
 
     def join_game(self):
         """Join a game - shows connection dialog"""
@@ -246,12 +259,21 @@ class UnifiedLauncher(ctk.CTk):
         os.environ["READYSETBET_PLAYER_NAME"] = player_name
         os.environ["READYSETBET_SESSION_ID"] = session_id
 
-        # Launch game
-        python_exe = sys.executable
-        subprocess.Popen([python_exe, "multiplayer_main.py"])
+        # Destroy launcher
+        self.destroy()
 
-        # Close launcher
-        self.quit()
+        # Import and launch multiplayer game directly (works in .exe)
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+        from src.multiplayer_app import MultiplayerReadySetBetApp
+
+        # Create new root window
+        root = ctk.CTk()
+
+        # Create app - it will detect join mode from env vars
+        app = MultiplayerReadySetBetApp(root)
+
+        # Run main loop
+        root.mainloop()
 
 
 def main():

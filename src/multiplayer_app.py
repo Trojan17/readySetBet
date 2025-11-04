@@ -154,7 +154,8 @@ class MultiplayerReadySetBetApp(ModernReadySetBetApp):
 
         # If in host mode from unified launcher, show session info popup
         if self.is_host_mode and self.server_public_ip:
-            self._show_session_info(session_id, self.server_public_ip)
+            # Delay to ensure main window is fully rendered first
+            self.root.after(500, lambda: self._show_session_info(session_id, self.server_public_ip))
 
     def _show_session_info(self, session_id: str, server_ip: str):
         """Show session information to host"""
