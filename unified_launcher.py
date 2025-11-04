@@ -231,10 +231,10 @@ class UnifiedLauncher(ctk.CTk):
                     except Exception as e:
                         self.after(0, lambda err=str(e): append_log(f"ERROR in uvicorn thread: {err}"))
 
-                # Start server thread (NOT daemon so it keeps running after launcher closes)
-                server_thread = threading.Thread(target=run_uvicorn, daemon=False)
+                # Start server thread (daemon=True so it dies when app closes)
+                server_thread = threading.Thread(target=run_uvicorn, daemon=True)
                 server_thread.start()
-                self.after(0, lambda: append_log("✓ Server thread started (will keep running)"))
+                self.after(0, lambda: append_log("✓ Server thread started (will stop when app closes)"))
 
                 # Store thread reference
                 self.server_thread = server_thread
@@ -347,8 +347,12 @@ class UnifiedLauncher(ctk.CTk):
         # Create app - it will detect host mode from env vars
         app = MultiplayerReadySetBetApp(root)
 
-        # Run main loop
+        # Run main loop - blocks until window closes
         root.mainloop()
+
+        # After window closes, exit the process cleanly
+        # This will terminate the daemon server thread automatically
+        sys.exit(0)
 
     def join_game(self):
         """Join a game - shows connection dialog"""
@@ -387,8 +391,11 @@ class UnifiedLauncher(ctk.CTk):
         # Create app - it will detect join mode from env vars
         app = MultiplayerReadySetBetApp(root)
 
-        # Run main loop
+        # Run main loop - blocks until window closes
         root.mainloop()
+
+        # After window closes, exit the process cleanly
+        sys.exit(0)
 
 
 def main():
