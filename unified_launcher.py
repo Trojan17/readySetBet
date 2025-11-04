@@ -372,12 +372,24 @@ class UnifiedLauncher(ctk.CTk):
         # Create app - it will detect host mode from env vars
         app = MultiplayerReadySetBetApp(root)
 
+        # Set up proper window close handler
+        def on_closing():
+            """Handle window close event"""
+            try:
+                root.destroy()
+            except:
+                pass
+            # Force terminate the entire process immediately
+            # os._exit() is more aggressive than sys.exit() and doesn't wait for cleanup
+            os._exit(0)
+
+        root.protocol("WM_DELETE_WINDOW", on_closing)
+
         # Run main loop - blocks until window closes
         root.mainloop()
 
-        # After window closes, exit the process cleanly
-        # This will terminate the daemon server thread automatically
-        sys.exit(0)
+        # If we get here (mainloop ended without close handler), force exit
+        os._exit(0)
 
     def join_game(self):
         """Join a game - shows connection dialog"""
@@ -416,11 +428,23 @@ class UnifiedLauncher(ctk.CTk):
         # Create app - it will detect join mode from env vars
         app = MultiplayerReadySetBetApp(root)
 
+        # Set up proper window close handler
+        def on_closing():
+            """Handle window close event"""
+            try:
+                root.destroy()
+            except:
+                pass
+            # Force terminate the entire process immediately
+            os._exit(0)
+
+        root.protocol("WM_DELETE_WINDOW", on_closing)
+
         # Run main loop - blocks until window closes
         root.mainloop()
 
-        # After window closes, exit the process cleanly
-        sys.exit(0)
+        # If we get here (mainloop ended without close handler), force exit
+        os._exit(0)
 
 
 def main():
