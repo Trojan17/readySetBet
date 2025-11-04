@@ -299,9 +299,31 @@ class UnifiedLauncher(ctk.CTk):
 
                 time.sleep(1)
 
-                # Close progress and launch game
-                self.after(0, progress.destroy)
-                self.after(0, lambda: self._launch_game_as_host(ip_text))
+                # Close progress window properly before launching game
+                def launch_game():
+                    try:
+                        # Release grab first
+                        progress.grab_release()
+                        # Destroy progress window explicitly
+                        progress.destroy()
+                        # Force UI to update
+                        try:
+                            self.update()
+                        except:
+                            pass
+                        # Small delay to ensure window cleanup
+                        time.sleep(0.3)
+                        # Now launch the game
+                        self._launch_game_as_host(ip_text)
+                    except Exception as e:
+                        print(f"Error in launch_game: {e}")
+                        # Try to launch anyway
+                        try:
+                            self._launch_game_as_host(ip_text)
+                        except:
+                            pass
+
+                self.after(100, launch_game)  # Small delay before launching
 
             except Exception as e:
                 error_msg = str(e)
@@ -334,8 +356,11 @@ class UnifiedLauncher(ctk.CTk):
         os.environ["READYSETBET_SERVER"] = "ws://localhost:8000"
         os.environ["READYSETBET_SERVER_PUBLIC_IP"] = server_ip
 
-        # Hide launcher
+        # Destroy launcher window and all its children (including progress window)
         self.destroy()
+
+        # Give UI time to fully destroy all windows
+        time.sleep(0.3)
 
         # Import and launch multiplayer game directly (works in .exe)
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
