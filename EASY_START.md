@@ -4,7 +4,37 @@
 
 ### Want to play multiplayer with friends? Here's how:
 
-## Step 1: Build the .exe Files
+## Step 1: First Time Setup (One Time Only!)
+
+**On Windows, just double-click:**
+```
+setup.bat
+```
+
+**On Mac/Linux:**
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+This installs everything you need. Takes about 1-2 minutes.
+
+---
+
+## Step 2: Run the Game!
+
+### Option A: Run with Python (Easiest, No Building!)
+
+**Just double-click or run:**
+```bash
+python launcher.py
+```
+
+You'll see a nice GUI with buttons for everything!
+
+### Option B: Build .exe Files (Optional)
+
+If you want standalone .exe files:
 
 **On Windows:**
 ```bash
@@ -14,7 +44,7 @@ build_exe.bat
 
 Wait 5-10 minutes while it builds.
 
-## Step 2: Run the Game!
+## Then Use the .exe Files!
 
 **Find these files in the `dist` folder:**
 

@@ -15,8 +15,8 @@ class LauncherGUI(ctk.CTk):
         super().__init__()
 
         self.title("🎰 Ready Set Bet Launcher")
-        self.geometry("600x500")
-        self.resizable(False, False)
+        self.geometry("600x700")
+        self.resizable(True, True)
 
         # Server process
         self.server_process = None
@@ -26,9 +26,13 @@ class LauncherGUI(ctk.CTk):
 
     def _setup_ui(self):
         """Setup the UI"""
+        # Create scrollable frame
+        scrollable = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        scrollable.pack(fill="both", expand=True, padx=20, pady=20)
+
         # Main container
-        container = ctk.CTkFrame(self, fg_color="transparent")
-        container.pack(fill="both", expand=True, padx=30, pady=30)
+        container = ctk.CTkFrame(scrollable, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Title
         title = ctk.CTkLabel(
@@ -155,45 +159,70 @@ class LauncherGUI(ctk.CTk):
             )
             return
 
+        # Check if dependencies are installed
+        try:
+            import uvicorn
+            import fastapi
+        except ImportError as e:
+            self.server_status.configure(
+                text=f"❌ Missing dependencies! Run: pip install -r server/requirements.txt",
+                text_color="red"
+            )
+            return
+
         self.server_btn.configure(state="disabled", text="Starting...")
         self.server_status.configure(text="🔄 Starting server...", text_color="blue")
 
-        # Start server in background thread
-        def run_server():
-            try:
-                # Get public IP
-                try:
-                    import requests
-                    public_ip = requests.get('https://api.ipify.org', timeout=3).text
-                    ip_text = f"Share with friends: ws://{public_ip}:8000"
-                except:
-                    ip_text = "Share your IP:8000 with friends"
+        # Get public IP first
+        try:
+            import requests
+            public_ip = requests.get('https://api.ipify.org', timeout=3).text
+            ip_text = f"ws://{public_ip}:8000"
+        except:
+            ip_text = "ws://YOUR_IP:8000"
 
-                self.server_status.configure(
-                    text=f"✅ Server running! {ip_text}",
-                    text_color="green"
-                )
-                self.server_running = True
-                self.server_btn.configure(text="✅ Server Running", state="disabled")
+        # Start server as subprocess
+        try:
+            python_exe = sys.executable
 
-                # Start server
-                import uvicorn
-                uvicorn.run(
-                    "server.main:app",
-                    host="0.0.0.0",
-                    port=8000,
-                    log_level="warning"
-                )
-            except Exception as e:
-                self.server_status.configure(
-                    text=f"❌ Error: {str(e)}",
-                    text_color="red"
-                )
-                self.server_btn.configure(state="normal", text="🚀 Start Server")
-                self.server_running = False
+            # Try to start server using start_server.py
+            if os.path.exists("start_server.py"):
+                # On Windows, create new console window
+                if sys.platform == "win32":
+                    self.server_process = subprocess.Popen(
+                        [python_exe, "start_server.py"],
+                        creationflags=subprocess.CREATE_NEW_CONSOLE
+                    )
+                else:
+                    self.server_process = subprocess.Popen(
+                        [python_exe, "start_server.py"]
+                    )
+            else:
+                # Fallback: run uvicorn directly
+                if sys.platform == "win32":
+                    self.server_process = subprocess.Popen(
+                        [python_exe, "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"],
+                        creationflags=subprocess.CREATE_NEW_CONSOLE
+                    )
+                else:
+                    self.server_process = subprocess.Popen(
+                        [python_exe, "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"]
+                    )
 
-        thread = threading.Thread(target=run_server, daemon=True)
-        thread.start()
+            self.server_running = True
+            self.server_status.configure(
+                text=f"✅ Server running! Share: {ip_text}",
+                text_color="green"
+            )
+            self.server_btn.configure(text="✅ Server Running", state="disabled")
+
+        except Exception as e:
+            self.server_status.configure(
+                text=f"❌ Error: {str(e)}",
+                text_color="red"
+            )
+            self.server_btn.configure(state="normal", text="🚀 Start Server")
+            self.server_running = False
 
     def start_client(self):
         """Start multiplayer client"""
