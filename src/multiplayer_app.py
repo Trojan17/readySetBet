@@ -163,7 +163,8 @@ class MultiplayerReadySetBetApp(ModernReadySetBetApp):
         info_window.title("Game Created!")
         info_window.geometry("550x400")
         info_window.transient(self.root)
-        info_window.grab_set()
+        # Don't use grab_set() - allows clicking on game board while popup is visible
+        info_window.attributes("-topmost", True)  # Keep popup visible but not blocking
 
         # Container
         container = ctk.CTkFrame(info_window, fg_color="transparent")
@@ -237,12 +238,21 @@ class MultiplayerReadySetBetApp(ModernReadySetBetApp):
             font=("Arial", 12),
             text_color="yellow"
         )
-        hint.pack(pady=(0, 20))
+        hint.pack(pady=(0, 10))
+
+        # Note about non-blocking
+        note = ctk.CTkLabel(
+            container,
+            text="You can start playing! This window won't block the game.",
+            font=("Arial", 11),
+            text_color="lightgray"
+        )
+        note.pack(pady=(0, 20))
 
         # Close button
         close_btn = ctk.CTkButton(
             container,
-            text="Got It!",
+            text="Close (or keep open for reference)",
             command=info_window.destroy,
             height=45,
             font=("Arial", 14, "bold"),
