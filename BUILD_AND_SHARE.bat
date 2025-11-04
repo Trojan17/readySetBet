@@ -49,24 +49,20 @@ pyinstaller --name="ReadySetBet-Game" ^
   --noconfirm ^
   multiplayer_main.py
 
-REM Build the launcher for you (host)
+REM Build the server launcher for you (host)
 echo.
-echo Building Launcher for you (the host)...
-pyinstaller --name="ReadySetBet-Launcher" ^
+echo Building Server Launcher for you (the host)...
+pyinstaller --name="ReadySetBet-Server" ^
   --onefile ^
   --windowed ^
-  --add-data="assets;assets" ^
-  --add-data="src;src" ^
   --add-data="server;server" ^
   --hidden-import=uvicorn ^
   --hidden-import=fastapi ^
   --hidden-import=websockets ^
   --hidden-import=sqlalchemy ^
-  --hidden-import=customtkinter ^
-  --hidden-import=PIL ^
   --clean ^
   --noconfirm ^
-  launcher.py
+  simple_launcher.py
 
 echo.
 echo ============================================================
@@ -75,7 +71,7 @@ echo ============================================================
 REM Create a dist_final folder with just what's needed
 if not exist "dist_final" mkdir dist_final
 copy "dist\ReadySetBet-Game.exe" "dist_final\" >nul
-copy "dist\ReadySetBet-Launcher.exe" "dist_final\" >nul
+copy "dist\ReadySetBet-Server.exe" "dist_final\" >nul
 
 echo.
 echo ============================================================
@@ -85,8 +81,8 @@ echo.
 echo Your files are in the "dist_final" folder:
 echo.
 echo   FOR YOU (the host):
-echo     dist_final\ReadySetBet-Launcher.exe
-echo     ^- Double-click this to host games
+echo     dist_final\ReadySetBet-Server.exe
+echo     ^- Double-click this to start the server
 echo.
 echo   FOR YOUR FRIENDS:
 echo     dist_final\ReadySetBet-Game.exe
@@ -96,16 +92,17 @@ echo ============================================================
 echo  How to use:
 echo ============================================================
 echo.
-echo 1. YOU: Double-click ReadySetBet-Launcher.exe
-echo    - Click "Start Server"
-echo    - Share the IP address it shows (e.g., ws://73.45.123.89:8000)
-echo    - Click "Play Multiplayer" to join your own server
-echo    - Create a session and share the code
+echo 1. YOU:
+echo    - Double-click ReadySetBet-Server.exe (starts the server)
+echo    - Note the IP address it shows (e.g., ws://73.45.123.89:8000)
+echo    - Double-click ReadySetBet-Game.exe
+echo    - Click "Create New Session"
+echo    - Share your IP and session code with friends
 echo.
 echo 2. FRIENDS:
 echo    - Double-click ReadySetBet-Game.exe
-echo    - Enter your IP address
-echo    - Enter the session code
+echo    - Click "Join a Friend's Game"
+echo    - Enter your IP address and session code
 echo    - Play!
 echo.
 echo ============================================================
