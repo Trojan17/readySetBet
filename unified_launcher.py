@@ -219,11 +219,14 @@ class UnifiedLauncher(ctk.CTk):
                         import uvicorn
                         self.after(0, lambda: append_log("Starting uvicorn.run()..."))
                         # Run uvicorn - this will block in this thread
+                        # Use log_config=None to avoid "Unable to configure formatter" error in .exe
                         uvicorn.run(
                             fastapi_app,
                             host="0.0.0.0",
                             port=8000,
-                            log_level="info"
+                            log_level="info",
+                            log_config=None,  # Disable default logging config for .exe compatibility
+                            access_log=False   # Disable access logs to reduce console spam
                         )
                     except Exception as e:
                         self.after(0, lambda err=str(e): append_log(f"ERROR in uvicorn thread: {err}"))
