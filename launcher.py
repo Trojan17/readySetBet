@@ -226,15 +226,41 @@ class LauncherGUI(ctk.CTk):
 
     def start_client(self):
         """Start multiplayer client"""
-        # Launch multiplayer client
-        python_exe = sys.executable
-        subprocess.Popen([python_exe, "multiplayer_main.py"])
+        # Close launcher and start multiplayer
+        self.quit()
+
+        # Launch multiplayer - check if running as .exe or script
+        if getattr(sys, 'frozen', False):
+            # Running as .exe - close and user should run Game.exe
+            import tkinter.messagebox as msgbox
+            msgbox.showinfo(
+                "Launch Multiplayer",
+                "Please run 'ReadySetBet-Game.exe' to play multiplayer.\n\n"
+                "The launcher is for hosting the server only."
+            )
+        else:
+            # Running as script
+            python_exe = sys.executable
+            subprocess.Popen([python_exe, "multiplayer_main.py"])
 
     def start_single_player(self):
         """Start single player game"""
+        # Close launcher and start single player
+        self.quit()
+
         # Launch single player
-        python_exe = sys.executable
-        subprocess.Popen([python_exe, "modern_main.py"])
+        if getattr(sys, 'frozen', False):
+            # Running as .exe
+            import tkinter.messagebox as msgbox
+            msgbox.showinfo(
+                "Single Player",
+                "Please run 'ReadySetBet-SinglePlayer.exe' for offline play.\n\n"
+                "The launcher is for hosting multiplayer only."
+            )
+        else:
+            # Running as script
+            python_exe = sys.executable
+            subprocess.Popen([python_exe, "modern_main.py"])
 
 
 def main():
