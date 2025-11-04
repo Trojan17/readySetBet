@@ -1,91 +1,203 @@
-# README.md
-"""
-# Ready Set Bet - Digital Betting Board
+# 🎰 Ready Set Bet - Digital Betting Board
 
-A Python application that recreates the betting mechanics of the Ready Set Bet board game.
+A Python application for the Ready Set Bet board game with **multiplayer support**!
 
-## Features
+## 🎮 Features
 
-- **Authentic Betting System**: Exact multipliers and penalties from the real game
-- **Token Management**: 5 tokens per player per round (1×$5, 2×$3, 1×$2, 1×$1)
-- **Bet Locking**: Only one player can bet on each spot
-- **Visual Feedback**: Color-coded betting board (Gold/Silver/Copper for Win/Place/Show)
-- **Special Bets**: Blue Wins, Orange Wins, Red Wins, 7 Finishes 5th or Worse
-- **Real-time Updates**: Live bet tracking and player status
-- **Penalty System**: Accurate loss penalties for unsuccessful bets
+- **Multiplayer**: Play with friends over the internet
+- **Single Player**: Practice offline
+- **Authentic Game Mechanics**: Exact rules from the board game
+- **Token System**: 5 tokens per race (1×$5, 2×$3, 1×$2, 1×$1)
+- **Special Bets**: Blue/Orange/Red Wins, Prop Bets, Exotic Finishes
+- **Easy Setup**: ONE .exe file does everything
 
-## Installation
+---
 
-1. Ensure Python 3.7+ is installed
-2. Clone/download the project files
-3. No additional dependencies required (uses tkinter from standard library)
+## 🚀 Quick Start - Multiplayer
 
-## Usage
+### 1. Build the .exe (ONE TIME)
+```bash
+BUILD_AND_SHARE.bat
+```
+Wait 10-15 minutes. You'll get: `dist_final/ReadySetBet.exe`
+
+### 2. Play!
+
+**Host:**
+- Double-click `ReadySetBet.exe`
+- Click "Host a Game" (green button)
+- Share the server address and session code with friends
+
+**Join:**
+- Double-click `ReadySetBet.exe`
+- Click "Join a Friend's Game" (blue button)
+- Enter server address and session code
+
+**Done!** 🎉
+
+---
+
+## 📖 Documentation
+
+- **[README_FINAL.md](README_FINAL.md)** - Complete multiplayer guide (START HERE!)
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Fix common issues
+- **[HOST_FROM_HOME.md](HOST_FROM_HOME.md)** - Network setup (port forwarding, Tailscale)
+- **[MULTIPLAYER_SETUP.md](MULTIPLAYER_SETUP.md)** - Advanced technical details
+
+---
+
+## 🎯 Single Player Mode
+
+Want to play offline?
 
 ```bash
 python modern_main.py
 ```
 
-## Project Structure
+---
+
+## 🏗️ Project Structure
 
 ```
-ready_set_bet/
-├── main.py              # Application entry point
-├── src/
-│   ├── __init__.py      # Package initialization
-│   ├── app.py           # Main application class
-│   ├── models.py        # Data models (Player, Bet, GameState)
-│   ├── game_logic.py    # Game rules and business logic
-│   ├── ui_components.py # UI components (BettingBoard)
-│   ├── dialogs.py       # Dialog windows
-│   └── constants.py     # Game configuration and constants
-├── requirements.txt     # Dependencies (none required)
-└── README.md           # This file
+readySetBet/
+├── unified_launcher.py      # Main launcher (builds to .exe)
+├── BUILD_AND_SHARE.bat      # One-click build script
+├── multiplayer_main.py      # Multiplayer entry point
+├── modern_main.py           # Single player entry point
+├── src/                     # Game logic and UI
+│   ├── models.py           # Data models
+│   ├── game_logic.py       # Game rules
+│   ├── multiplayer_app.py  # Multiplayer wrapper
+│   ├── network_client.py   # WebSocket client
+│   └── ...
+├── server/                  # Backend server
+│   ├── main.py            # FastAPI + WebSocket
+│   ├── database.py        # SQLite database
+│   ├── models.py          # Database models
+│   └── ...
+└── assets/                 # Icons and images
 ```
 
-## Game Rules
+---
+
+## 🌐 How Multiplayer Works
+
+1. **Host** runs the app and clicks "Host a Game"
+   - Server starts automatically in background
+   - Game session created
+   - Gets server address + session code
+
+2. **Friends** run the same app and click "Join a Friend's Game"
+   - Enter host's server address
+   - Enter session code
+   - Connected!
+
+3. **Play together** - all players see bets in real-time
+
+---
+
+## 🔧 Requirements
+
+**For Running:**
+- Python 3.7+
+- Dependencies: `pip install -r requirements.txt`
+
+**For Building .exe:**
+- PyInstaller: `pip install pyinstaller`
+- All dependencies installed
+
+**For Multiplayer:**
+- Port 8000 forwarded (or use Tailscale VPN)
+
+---
+
+## 🎲 Game Rules
 
 ### Betting
 - Each player starts with $0
-- Players get 5 tokens per round: 1×$5, 2×$3, 1×$2, 1×$1
-- Only one player can bet on each betting spot
-- Bets lock the spot until round ends
+- 5 tokens per race: 1×$5, 2×$3, 1×$2, 1×$1
+- One bet per spot (locked when placed)
 
 ### Payouts
-- **Winning bets**: Token Value × Multiplier
-- **Losing bets**: Fixed penalty amount (not multiplied)
-- Money cannot go below $0
+- **Win**: Token Value × Multiplier
+- **Loss**: Fixed penalty (not multiplied)
+- Money never goes below $0
 
 ### Special Bets
-- **Blue Wins** (5x, -$1): Horses 2/3, 4, 10, 11/12
-- **Orange Wins** (3x, -$1): Horses 5, 9  
-- **Red Wins** (2x, -$1): Horses 6, 8
-- **7 Finishes 5th or Worse** (4x, no penalty): Horse 7 not in top 3
+- **Blue Wins** (5x): Horses 2/3, 4, 10, 11/12
+- **Orange Wins** (3x): Horses 5, 9
+- **Red Wins** (2x): Horses 6, 8
+- **7 Finishes 5th+** (4x): Horse 7 not in top 3
+- **Prop Bets** (2x-4x): 28 different propositions
+- **Exotic Finishes** (4x-6x): 5 special patterns
 
-## Development
+---
 
-### Architecture
-- **MVC Pattern**: Separated models, views, and logic
-- **Modular Design**: Each component has single responsibility
-- **Type Hints**: Full type annotation for better code clarity
-- **Dataclasses**: Modern Python data structures
+## 🛠️ Development
 
-### Key Classes
-- `GameState`: Manages all game data
-- `Player`: Individual player data and token management
-- `Bet`: Represents a single bet with all metadata
-- `GameLogic`: Handles race results and payout calculations
-- `BettingBoard`: Main UI component for bet placement
-- `ReadySetBetApp`: Main application controller
+### Tech Stack
+- **Frontend**: CustomTkinter (Python GUI)
+- **Backend**: FastAPI + WebSockets
+- **Database**: SQLite (auto-created)
+- **Architecture**: MVC pattern
 
-## Contributing
+### Key Components
+- `unified_launcher.py` - Single entry point for everything
+- `GameState` - Manages game data
+- `NetworkClient` - WebSocket communication
+- `SessionManager` - Server-side session handling
 
-1. Follow existing code style and patterns
-2. Add type hints to all new functions
-3. Update tests for any business logic changes
-4. Maintain separation of concerns between modules
+### Run Development Server
+```bash
+# Start server
+python -m uvicorn server.main:app --reload
 
-## License
+# Start client (connects to localhost)
+python multiplayer_main.py
+```
 
-GPL-3.0 license
-"""
+---
+
+## 📦 Building from Source
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+pip install -r server/requirements.txt
+
+# Build .exe
+BUILD_AND_SHARE.bat
+
+# Or manually:
+pyinstaller --name="ReadySetBet" --onefile --windowed \
+  --add-data="assets;assets" \
+  --add-data="src;src" \
+  --add-data="server;server" \
+  unified_launcher.py
+```
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test with multiple clients
+5. Submit a pull request
+
+---
+
+## 📝 License
+
+GPL-3.0 License
+
+---
+
+## 🎉 Credits
+
+Based on the Ready Set Bet board game.
+
+---
+
+**Ready to play? Run `BUILD_AND_SHARE.bat` and share the .exe with friends!** 🏇💰
