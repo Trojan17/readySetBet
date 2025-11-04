@@ -131,27 +131,58 @@ class UnifiedLauncher(ctk.CTk):
         # Hide this window
         self.withdraw()
 
-        # Show progress window
+        # Show progress window with logs
         progress = ctk.CTkToplevel(self)
         progress.title("Starting Server...")
-        progress.geometry("500x300")
+        progress.geometry("700x500")
         progress.transient(self)
         progress.grab_set()
 
+        # Container
+        container = ctk.CTkFrame(progress, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=20, pady=20)
+
         status_label = ctk.CTkLabel(
-            progress,
+            container,
             text="🔄 Starting server...\nPlease wait...",
-            font=("Arial", 14)
+            font=("Arial", 14, "bold")
         )
-        status_label.pack(expand=True, pady=20)
+        status_label.pack(pady=(0, 10))
+
+        # Log output area
+        log_label = ctk.CTkLabel(
+            container,
+            text="Server Output:",
+            font=("Arial", 12, "bold"),
+            anchor="w"
+        )
+        log_label.pack(fill="x", pady=(10, 5))
+
+        log_text = ctk.CTkTextbox(
+            container,
+            font=("Courier", 10),
+            wrap="word"
+        )
+        log_text.pack(fill="both", expand=True, pady=(0, 10))
+
+        def append_log(message):
+            """Append message to log"""
+            log_text.insert("end", message + "\n")
+            log_text.see("end")
+            progress.update()
 
         def start_server_and_game():
             try:
+                self.after(0, lambda: append_log("=== Starting Server Setup ==="))
+
                 # Check dependencies
+                self.after(0, lambda: append_log("Checking dependencies..."))
                 try:
                     import uvicorn
                     import fastapi
-                except ImportError:
+                    self.after(0, lambda: append_log("✓ uvicorn and fastapi found"))
+                except ImportError as e:
+                    self.after(0, lambda: append_log(f"✗ Missing dependency: {e}"))
                     self.after(0, lambda: messagebox.showerror(
                         "Missing Dependencies",
                         "Server dependencies not installed!\n\n"
@@ -162,6 +193,7 @@ class UnifiedLauncher(ctk.CTk):
                     return
 
                 if requests is None:
+                    self.after(0, lambda: append_log("✗ requests library not found"))
                     self.after(0, lambda: messagebox.showerror(
                         "Missing Dependencies",
                         "requests library not installed!\n\n"
@@ -171,61 +203,104 @@ class UnifiedLauncher(ctk.CTk):
                     self.after(0, self.deiconify)
                     return
 
+                self.after(0, lambda: append_log("✓ All dependencies found"))
+
                 # Start server in background
                 python_exe = sys.executable
+                self.after(0, lambda: append_log(f"\nStarting uvicorn server..."))
+                self.after(0, lambda: append_log(f"Python: {python_exe}"))
+                self.after(0, lambda: append_log(f"Command: uvicorn server.main:app --host 0.0.0.0 --port 8000\n"))
+
                 if sys.platform == "win32":
                     self.server_process = subprocess.Popen(
                         [python_exe, "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"],
                         creationflags=subprocess.CREATE_NO_WINDOW,
                         stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        bufsize=1
                     )
                 else:
                     self.server_process = subprocess.Popen(
                         [python_exe, "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"],
                         stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        bufsize=1
                     )
 
                 self.server_running = True
 
                 # Update status
                 self.after(0, lambda: status_label.configure(
-                    text="✅ Server started!\n🔄 Waiting for server to be ready..."
+                    text="✅ Server process started!\n🔄 Waiting for server to be ready..."
                 ))
 
                 # Wait for server to be fully ready (poll health endpoint)
+                self.after(0, lambda: append_log("Waiting for server to respond..."))
                 server_ready = False
                 max_attempts = 20  # 20 attempts * 0.5s = 10 seconds max
+
                 for attempt in range(max_attempts):
+                    # Check if process crashed
+                    if self.server_process.poll() is not None:
+                        # Process died, read error output
+                        stderr_output = self.server_process.stderr.read()
+                        stdout_output = self.server_process.stdout.read()
+                        self.after(0, lambda out=stdout_output: append_log(f"\nServer stdout:\n{out}"))
+                        self.after(0, lambda err=stderr_output: append_log(f"\nServer stderr:\n{err}"))
+                        raise Exception(f"Server process crashed (exit code: {self.server_process.returncode})")
+
                     time.sleep(0.5)
+                    self.after(0, lambda a=attempt+1: append_log(f"Attempt {a}/20: Checking http://localhost:8000/"))
+
                     try:
                         response = requests.get("http://localhost:8000/", timeout=2)
                         if response.status_code == 200:
                             server_ready = True
+                            self.after(0, lambda: append_log("✓ Server is responding!"))
                             break
-                    except:
-                        pass  # Server not ready yet, keep trying
+                        else:
+                            self.after(0, lambda code=response.status_code: append_log(f"  Server returned status {code}"))
+                    except requests.exceptions.ConnectionError:
+                        self.after(0, lambda: append_log("  Connection refused (server not ready yet)"))
+                    except requests.exceptions.Timeout:
+                        self.after(0, lambda: append_log("  Request timeout"))
+                    except Exception as e:
+                        self.after(0, lambda err=str(e): append_log(f"  Error: {err}"))
 
                 if not server_ready:
+                    # Try to get server output
+                    if self.server_process.poll() is None:
+                        self.server_process.terminate()
+                    stderr_output = self.server_process.stderr.read() if self.server_process.stderr else ""
+                    stdout_output = self.server_process.stdout.read() if self.server_process.stdout else ""
+                    self.after(0, lambda out=stdout_output: append_log(f"\nServer stdout:\n{out}"))
+                    self.after(0, lambda err=stderr_output: append_log(f"\nServer stderr:\n{err}"))
                     raise Exception("Server failed to start within 10 seconds")
 
                 # Update status
                 self.after(0, lambda: status_label.configure(
                     text="✅ Server is ready!\n🔄 Getting your IP address..."
                 ))
+                self.after(0, lambda: append_log("\nGetting your public IP address..."))
 
                 # Get public IP
                 try:
                     public_ip = requests.get('https://api.ipify.org', timeout=5).text
                     ip_text = f"ws://{public_ip}:8000"
-                except:
+                    self.after(0, lambda ip=public_ip: append_log(f"✓ Your public IP: {ip}"))
+                except Exception as e:
+                    self.after(0, lambda err=str(e): append_log(f"⚠ Could not get public IP: {err}"))
+                    self.after(0, lambda: append_log("  You'll need to manually find your IP address"))
                     ip_text = "ws://YOUR_IP:8000"
 
                 # Update status
                 self.after(0, lambda: status_label.configure(
                     text=f"✅ Server running!\n🔄 Launching game..."
                 ))
+                self.after(0, lambda: append_log("\n=== Server Started Successfully! ==="))
+                self.after(0, lambda: append_log("Launching game..."))
 
                 time.sleep(1)
 
@@ -234,12 +309,27 @@ class UnifiedLauncher(ctk.CTk):
                 self.after(0, lambda: self._launch_game_as_host(ip_text))
 
             except Exception as e:
-                self.after(0, lambda: messagebox.showerror(
-                    "Error",
-                    f"Failed to start server:\n{str(e)}"
+                error_msg = str(e)
+                self.after(0, lambda msg=error_msg: append_log(f"\n❌ ERROR: {msg}"))
+                self.after(0, lambda: append_log("\nServer failed to start. Please check the logs above."))
+                self.after(0, lambda: status_label.configure(
+                    text="❌ Server Failed to Start\nCheck logs above for details"
                 ))
-                self.after(0, progress.destroy)
-                self.after(0, self.deiconify)
+
+                # Add a close button instead of auto-closing
+                def close_with_error():
+                    if self.server_process and self.server_process.poll() is None:
+                        self.server_process.terminate()
+                    progress.destroy()
+                    self.deiconify()
+
+                self.after(0, lambda: ctk.CTkButton(
+                    container,
+                    text="Close",
+                    command=close_with_error,
+                    height=40,
+                    fg_color="red"
+                ).pack(pady=10))
 
         # Start in thread
         threading.Thread(target=start_server_and_game, daemon=True).start()
