@@ -2,7 +2,21 @@
 
 ## Quick Start
 
-### 🎯 Play Locally (Testing)
+### 🏠 Host from Your Computer (Play with Friends Online)
+
+**Want to host on your own computer and have friends connect from anywhere?**
+
+👉 **See [HOST_FROM_HOME.md](HOST_FROM_HOME.md)** for the complete guide!
+
+**Quick version:**
+1. Start server: `docker-compose up`
+2. Forward port 8000 in your router
+3. Find your IP: `curl ifconfig.me`
+4. Friends connect to: `ws://YOUR_IP:8000`
+
+---
+
+### 🎯 Play Locally (Testing/Same Network)
 
 **Terminal 1 - Start Server:**
 ```bash
@@ -19,7 +33,7 @@ Create a session, share the code, and have friends join!
 
 ---
 
-### 🌐 Play Online (Production)
+### 🌐 Deploy to Cloud (Production Hosting)
 
 #### Deploy Server to Cloud
 
